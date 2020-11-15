@@ -54,6 +54,26 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
+    public function videos_test($id)
+    {
+        $posts = array('hoge'=>'huga');
+        $status = 200;
+
+        $yt = new YTDManager();
+        $videos = $yt->getData(YTDManager::TYPE_VIDEOS, array('1LmxK1whApI','5vZqrFOPG8k'), false, false, false );
+        if( $videos
+            && $videodata = $videos->getData() ) {
+
+            $yt->saveBatch($videodata);
+            $posts['test'] = $videodata;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
     public function channel($id)
     {
         $posts = array('hoge'=>'huga');

@@ -6,11 +6,13 @@ use App\Library\DSClient;
 use App\Library\YouTubeAPI;
 use App\Library\ChannelData;
 use App\Library\VideoData;
+use App\Library\VideoDataList;
 
 class YTDManager
 {
     const TYPE_CHANNEL = 'channel';
     const TYPE_VIDEO = 'video';
+    const TYPE_VIDEOS = 'videos';
     const TYPE_SEARCH_CHANNEL_VIDEOS = 'channelVideos';
 
     const YTDM_DATA_API_MAP = array(
@@ -21,6 +23,10 @@ class YTDManager
         self::TYPE_VIDEO=>array(
             'class'=>__NAMESPACE__ . '\\' . 'VideoData',
             'api'=>'getVideo'
+        ),
+        self::TYPE_VIDEOS=>array(
+            'class'=>__NAMESPACE__ . '\\' . 'VideoDataList',
+            'api'=>'getVideos'
         ),
         self::TYPE_SEARCH_CHANNEL_VIDEOS=>array(
             'class'=>__NAMESPACE__ . '\\' . 'SearchVideoResult',
