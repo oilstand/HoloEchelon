@@ -19,6 +19,8 @@ class BaseYTD
     // refresh time
     const YTD_REFRESH_TIME = 'P1DT1H';
 
+    const YTD_TYPE_INSTANT = "instant";
+
     function __construct( $data = array() ) {
         $this->createdAt = self::getDatetimeNowStr();
         $this->setData($data);
@@ -26,12 +28,18 @@ class BaseYTD
 
     function setData( $data ) {
         $this->data = array();
+        $this->updateData( $data );
+    }
+
+    function updateData( $data, $updateCreatedAt = true, $updateUpdatedAt = true ) {
         Utility::copyArrayListed($data, $this->data, static::YTD_LIST);
 
-        if(isset($data['createdAt']) && $data['createdAt'] != '') {
+        if($updateCreatedAt
+            && isset($data['createdAt']) && $data['createdAt'] != '') {
             $this->createdAt = $data['createdAt'];
         }
-        if(isset($data['updatedAt']) && $data['updatedAt'] != '') {
+        if($updateUpdatedAt
+            && isset($data['updatedAt']) && $data['updatedAt'] != '') {
             $this->updatedAt = $data['updatedAt'];
         }
     }
@@ -40,6 +48,10 @@ class BaseYTD
         $this->apiRawData = $data;
         $this->data = Utility::convertArray($data, static::YTD_API_DATA_MAP);
 
+        $this->updateUpdatedAt();
+    }
+
+    function updateUpdatedAt() {
         $this->updatedAt = self::getDatetimeNowStr();
     }
 
@@ -74,12 +86,58 @@ class BaseYTD
         return isset($this->data['id']) ? $this->data['id'] : FALSE;
     }
 
+    function getType() {
+        return isset($this->data['type']) ? $this->data['type'] : FALSE;
+    }
+
     function getKind() {
         return static::YTD_KIND;
     }
 
     function getNoindex() {
         return static::YTD_NOINDEX;
+    }
+
+    function compare( $data ) {
+        $diffs = array();
+        foreach(static::YTD_LIST as $index) {
+            if(!isset($this->data[$index])) {
+                if(isset($data[$index])) {
+                    $diffs[$index] = $data[$index];
+                }
+            } else if( is_array($this->data[$index]) ) {
+                if($diff = self::compareArray($this->data[$index], $data[$index])) {
+                    $diffs[$index] = $diff;
+                }
+            } else if( !is_object($this->data[$index]) ) {
+                if($this->data[$index] !== $data[$index]) {
+                    $diffs[$index] = $data[$index];
+                }
+            } else {
+                // objectは比較できない
+            }
+        }
+        return $diffs;
+    }
+
+    public static function compareArray( $src1, $src2 ) {
+        if(is_array($src1)) {
+
+            $diffs = array();
+            foreach($src1 as $key => $val) {
+                $diff = self::compareArray($src1[$key], $src2[$key]);
+                if($diff) {
+                    $diffs[$key] = $diff;
+                }
+            }
+            return empty($diffs) ? FALSE : $diffs;
+        } else {
+            if($src1 === $src2) {
+                return FALSE;
+            } else {
+                return $src2;
+            }
+        }
     }
 
     static function getDatetimeNowStr() {
