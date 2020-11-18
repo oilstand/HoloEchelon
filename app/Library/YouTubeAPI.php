@@ -19,8 +19,9 @@ class YouTubeAPI
     public function getChannelVideos( $channelId ) {
         $res = $this->searchVideos(
                 array(
-                    'channelId'=>$channelId,
-                    'order'=>'date'
+                    'channelId'=>$channelId
+                    ,'order'=>'date'
+                    ,'maxResults'=>50
                 )
             );
         return $res ? $res : false;
