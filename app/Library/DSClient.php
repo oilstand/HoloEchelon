@@ -42,5 +42,13 @@ class DSClient
                 ?$this->ds->key( $kind )
                 :$this->ds->key( $kind, $id );
     }
+
+    function query() {
+        return $this->ds->query();
+    }
+
+    function runQuery($query) {
+        return $this->ds->runQuery($query);
+    }
 }
 
