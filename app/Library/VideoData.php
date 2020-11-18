@@ -11,7 +11,7 @@ class VideoData extends BaseYTD
     const YTD_LIST = array(
         'id','title','description','thumbnails','publishedAt',
         'channelId','channelTitle','liveBroadcastContent','embeddable',
-        'statistics','liveStreamingDetails','duration','type'
+        'statistics','duration','type','actualStartTime','actualEndTime','scheduledStartTime'
     );
     const YTD_NOINDEX = array(
         'description','thumbnails','channelTitle','liveBroadcastContent',
@@ -37,8 +37,12 @@ class VideoData extends BaseYTD
                 'dst'=>array('embeddable') ),
         array(  'src'=>array('statistics'),
                 'dst'=>array('statistics') ),
-        array(  'src'=>array('liveStreamingDetails'),
-                'dst'=>array('liveStreamingDetails') ),
+        array(  'src'=>array('liveStreamingDetails','actualStartTime'),
+                'dst'=>array('actualStartTime') ),
+        array(  'src'=>array('liveStreamingDetails','actualEndTime'),
+                'dst'=>array('actualEndTime') ),
+        array(  'src'=>array('liveStreamingDetails','scheduledStartTime'),
+                'dst'=>array('scheduledStartTime') ),
         array(  'src'=>array('contentDetails','duration'),
                 'dst'=>array('duration') ),
         array(  'src'=>array('type'),
