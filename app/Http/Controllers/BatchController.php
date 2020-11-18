@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Library\YouTubeAPI;
 use App\Library\YTDManager;
+use App\Library\BaseYTD;
 
 class BatchController extends Controller
 {
@@ -40,13 +41,80 @@ class BatchController extends Controller
         $status = 200;
 
         $yt = new YTDManager();
-        $channelVideos = $yt->getData(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id, false, false, false );
+        $channelVideos = $yt->getDataNoCache(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id);
         if( $channelVideos
             && $videos = $channelVideos->getData() ) {
 
             $yt->saveBatch($videos);
         }
         $posts['test'] = $channelVideos->getData();
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+    public function channelVideoIds($id)
+    {
+        $posts = array('hoge'=>'huga');
+        $status = 200;
+
+        $yt = new YTDManager();
+        $channelVideos = $yt->getDataNoCache(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id);
+        if( $channelVideos
+            && $videos = $channelVideos->getData() ) {
+
+            $yt->saveBatch($videos);
+        }
+        $posts['test'] = $channelVideos->getId();
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    public function channelVideosFromDS($id)
+    {
+        $posts = array('hoge'=>'huga');
+        $status = 200;
+
+        $yt = new YTDManager();
+        $channelVideos = $yt->getDataNoCache(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id);
+        if( $channelVideos
+            && $apiVideos = $channelVideos->getDataList() ) {
+
+            $videoIdList = $channelVideos->getId();
+            $dsVideoDataList = $yt->getDataListFromDS(YTDManager::TYPE_VIDEOS, $videoIdList );
+
+            $dsVideos = $dsVideoDataList->getDataList();
+            $dsVideosKV = YTDManager::convertArray2KeyValue($dsVideos);
+
+            $saveDataList = array();
+
+            foreach( $apiVideos as $apiVideo ) {
+                $id = $apiVideo->getId();
+                if(isset($dsVideosKV[$id])) {
+                    if($dsVideosKV[$id]->getType() !== BaseYTD::YTD_TYPE_INSTANT) {
+                        continue;
+                    }
+                    $data = $apiVideo->getData();
+                    $diff = $dsVideosKV[$id]->compare($data);
+
+                    if(!empty($diff)) {
+                        $dsVideosKV[$id]->updateData($diff);
+                        $dsVideosKV[$id]->updateUpdatedAt();
+                        $saveDataList[] = $dsVideosKV[$id];
+                    }
+                } else {
+                    $saveDataList[] = $apiVideo;
+                }
+            }
+            if(!empty($saveDataList)) {
+                $yt->saveBatch($saveDataList);
+                $posts['saved'] = $saveDataList;
+            }
+        }
 
         return response()->json($posts, $status)
                 ->header('Content-Type', 'application/json')

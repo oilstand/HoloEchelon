@@ -26,4 +26,6 @@ Route::middleware(['cors'])->group(function () {
     Route::get('videoc/{id}', 'BatchController@videoc');
     Route::get('videos/{id}', 'BatchController@videos_test');
     Route::get('channelVideos/{id}', 'BatchController@channelVideos');
+    Route::get('channelVideoIds/{id}', 'BatchController@channelVideoIds');
+    Route::get('channelVideosFromDS/{id}', 'BatchController@channelVideosFromDS');
 });
