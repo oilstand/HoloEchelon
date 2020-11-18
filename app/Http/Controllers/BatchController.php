@@ -142,6 +142,35 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
+    function channelList() {
+
+        $posts = array();
+        $status = 200;
+
+        $yt = new YTDManager();
+        $query = $yt->query()->kind('channel')->limit(10);
+
+        $channelList = $yt->getDataListFromDSQuery('channels', $query);
+
+        $posts['data'] = array();
+
+        if($channelList
+            && $channels = $channelList->getDataList()) {
+            $posts['result'] = 'success';
+            foreach($channels as $channel) {
+                $posts['data'][] = $channel->getData();
+            }
+        } else {
+            $posts['result'] = 'not found';
+            $status = 404;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
     public function channel($id)
     {
         $posts = array('hoge'=>'huga');
