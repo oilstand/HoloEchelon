@@ -59,6 +59,28 @@ class YTDManager
         return FALSE;
     }
 
+    function getDataListFromDS( $dataType, $ids ) {
+
+        if(!isset(self::YTDM_DATA_API_MAP[$dataType]) && !is_array($ids)) {
+            return FALSE;
+        }
+        $dataClass = self::YTDM_DATA_API_MAP[$dataType]['class'];
+
+        $keys = array();
+        foreach($ids as $id) {
+            $keys[] = $this->dsc->key( $dataClass::YTD_KIND, $id );
+        }
+        $dsres = $this->dsc->loadEntities( $keys );
+
+        if($dsres) {
+            $datac = new $dataClass($dsres['found']);
+            if($datac->checkData()) {
+                return $datac;
+            }
+        }
+        return FALSE;
+    }
+
     function getDataFromAPI( $dataType, $id, $datac = FALSE ) {
         if(!isset(self::YTDM_DATA_API_MAP[$dataType])) {
             return FALSE;
@@ -88,6 +110,9 @@ class YTDManager
         return FALSE;
     }
 
+    function getDataNoCache( $dataType, $id ) {
+        return $this->getData( $dataType, $id, false, false, false );
+    }
     function getData( $dataType, $id, $useCache = true, $saveDS = true, $useDS = true ) {
 
         $datac = FALSE;
@@ -157,6 +182,14 @@ class YTDManager
         if(!empty($entities)) {
             $this->dsc->saveEntities($entities);
         }
+    }
+
+    public static function convertArray2KeyValue( $array ) {
+        $ret = array();
+        foreach($array as $val) {
+            $ret[$val->getId()] = $val;
+        }
+        return $ret;
     }
 /*
     function getData( $dataType, $id, $useDS = true, $saveDS = true ) {
