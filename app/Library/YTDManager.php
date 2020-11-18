@@ -5,12 +5,14 @@ namespace App\Library;
 use App\Library\DSClient;
 use App\Library\YouTubeAPI;
 use App\Library\ChannelData;
+use App\Library\ChannelDataList;
 use App\Library\VideoData;
 use App\Library\VideoDataList;
 
 class YTDManager
 {
     const TYPE_CHANNEL = 'channel';
+    const TYPE_CHANNELS = 'channels';
     const TYPE_VIDEO = 'video';
     const TYPE_VIDEOS = 'videos';
     const TYPE_SEARCH_CHANNEL_VIDEOS = 'channelVideos';
@@ -19,6 +21,10 @@ class YTDManager
         self::TYPE_CHANNEL=>array(
             'class'=>__NAMESPACE__ . '\\' . 'ChannelData',
             'api'=>'getChannel'
+        ),
+        self::TYPE_CHANNELS=>array(
+            'class'=>__NAMESPACE__ . '\\' . 'ChannelDataList',
+            'api'=>'getChannels'
         ),
         self::TYPE_VIDEO=>array(
             'class'=>__NAMESPACE__ . '\\' . 'VideoData',
@@ -79,6 +85,29 @@ class YTDManager
             }
         }
         return FALSE;
+    }
+
+    function getDataListFromDSQuery( $dataType, $query ) {
+
+        if(!isset(self::YTDM_DATA_API_MAP[$dataType])
+            && get_class($query) !== "Google\\Cloud\\Datastore\\Query\\Query") {
+            return FALSE;
+        }
+        $dataClass = self::YTDM_DATA_API_MAP[$dataType]['class'];
+
+        $dsres = $this->dsc->runQuery( $query );
+
+        if($dsres) {
+            $datac = new $dataClass($dsres);
+            if($datac->checkData()) {
+               return $datac;
+            }
+        }
+        return FALSE;
+    }
+
+    function query() {
+        return $this->dsc->query();
     }
 
     function getDataFromAPI( $dataType, $id, $datac = FALSE ) {
@@ -191,63 +220,5 @@ class YTDManager
         }
         return $ret;
     }
-/*
-    function getData( $dataType, $id, $useDS = true, $saveDS = true ) {
-
-        if(!isset(self::YTDM_DATA_API_MAP[$dataType])) {
-            return FALSE;
-        }
-        $dataDef = self::YTDM_DATA_API_MAP[$dataType];
-
-        // ds利用？
-        if($useDS) {
-            $dsres = $this->dsc->loadEntity(
-                $this->dsc->key( $dataDef['class']::YTD_KIND, $id )
-            );
-
-            if($dsres){
-                // リフレッシュチェック
-                $datac = new $dataDef['class']($dsres);
-                if( !$datac->needRefresh()
-                    && $datac->checkData() ) {
-                    // リフレッシュ不要
-                    return $datac;
-                }
-            }
-        }
-
-        if(!isset($datac)) {  // 新規作成
-            $datac = new $dataDef['class']();
-        }
-
-        $apifunc = $dataDef['api'];
-        $response = $this->api->$apifunc($id);
-        $responseBody = YouTubeAPI::getBodyFromResponse($response);
-
-        if($responseBody
-            && isset($responseBody['items'])
-            && count($responseBody['items']) > 0 ) {
-
-            $datac->setDataFromAPIResult($responseBody['items'][0]);
-
-            if($datac->checkData()
-                && $data = $datac->getData()) {
-
-                if($saveDS) {
-                    $entity = $this->dsc->entity(
-                        $this->dsc->key($datac->getKind(), $datac->getId()),
-                        $data,
-                        $datac->getNoindex()
-                    );
-                    $this->dsc->saveEntity($entity);
-                }
-                return $datac;
-            }
-        } else {
-
-        }
-
-        return false;
-    }*/
 }
 
