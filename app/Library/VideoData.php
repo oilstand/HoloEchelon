@@ -48,5 +48,9 @@ class VideoData extends BaseYTD
         array(  'src'=>array('type'),
                 'dst'=>array('type') ),
     );
+
+    function needRefresh() {
+        return (parent::needRefresh() || $this->getType() === BaseYTD::YTD_TYPE_INSTANT);
+    }
 }
 
