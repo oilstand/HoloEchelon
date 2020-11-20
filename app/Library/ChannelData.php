@@ -10,7 +10,7 @@ class ChannelData extends BaseYTD
     const YTD_REFRESH_TIME = 'P1D';
     const YTD_LIST = array(
         'id','title','description','thumbnails','publishedAt',
-        'subscriberCount','viewCount','videoCount'
+        'subscriberCount','viewCount','videoCount','videoSearchAt'
     );
     const YTD_NOINDEX = array('description', 'thumbnails');
     const YTD_API_DATA_MAP = array(
