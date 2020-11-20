@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Library\YouTubeAPI;
 use App\Library\YTDManager;
 use App\Library\BaseYTD;
+use App\Library\HoloApp;
 
 class BatchController extends Controller
 {
@@ -35,92 +36,7 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
-    public function channelVideos($id)
-    {
-        $posts = array('hoge'=>'huga');
-        $status = 200;
-
-        $yt = new YTDManager();
-        $channelVideos = $yt->getDataNoCache(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id);
-        if( $channelVideos
-            && $videos = $channelVideos->getData() ) {
-
-            $yt->saveBatch($videos);
-        }
-        $posts['test'] = $channelVideos->getData();
-
-        return response()->json($posts, $status)
-                ->header('Content-Type', 'application/json')
-                ->header('Access-Control-Allow-Methods', 'GET')
-                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
-    }
-    public function channelVideoIds($id)
-    {
-        $posts = array('hoge'=>'huga');
-        $status = 200;
-
-        $yt = new YTDManager();
-        $channelVideos = $yt->getDataNoCache(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id);
-        if( $channelVideos
-            && $videos = $channelVideos->getData() ) {
-
-            $yt->saveBatch($videos);
-        }
-        $posts['test'] = $channelVideos->getId();
-
-        return response()->json($posts, $status)
-                ->header('Content-Type', 'application/json')
-                ->header('Access-Control-Allow-Methods', 'GET')
-                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
-    }
-
-    public function channelVideosFromDS($id)
-    {
-        $posts = array('hoge'=>'huga');
-        $status = 200;
-
-        $yt = new YTDManager();
-        $channelVideos = $yt->getDataNoCache(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id);
-        if( $channelVideos
-            && $apiVideos = $channelVideos->getDataList() ) {
-
-            $videoIdList = $channelVideos->getId();
-            $dsVideoDataList = $yt->getDataListFromDS(YTDManager::TYPE_VIDEOS, $videoIdList );
-
-            $dsVideos = $dsVideoDataList->getDataList();
-            $dsVideosKV = YTDManager::convertArray2KeyValue($dsVideos);
-
-            $saveDataList = array();
-
-            foreach( $apiVideos as $apiVideo ) {
-                $id = $apiVideo->getId();
-                if(isset($dsVideosKV[$id])) {
-                    if($dsVideosKV[$id]->getType() !== BaseYTD::YTD_TYPE_INSTANT) {
-                        continue;
-                    }
-                    $data = $apiVideo->getData();
-                    $diff = $dsVideosKV[$id]->compare($data);
-
-                    if(!empty($diff)) {
-                        $dsVideosKV[$id]->updateData($diff);
-                        $dsVideosKV[$id]->updateUpdatedAt();
-                        $saveDataList[] = $dsVideosKV[$id];
-                    }
-                } else {
-                    $saveDataList[] = $apiVideo;
-                }
-            }
-            if(!empty($saveDataList)) {
-                $yt->saveBatch($saveDataList);
-                $posts['saved'] = $saveDataList;
-            }
-        }
-
-        return response()->json($posts, $status)
-                ->header('Content-Type', 'application/json')
-                ->header('Access-Control-Allow-Methods', 'GET')
-                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
-    }
+    /*
 
     public function videos_test($id)
     {
@@ -140,8 +56,65 @@ class BatchController extends Controller
                 ->header('Content-Type', 'application/json')
                 ->header('Access-Control-Allow-Methods', 'GET')
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }*/
+
+////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * /api/video/{id}
+     */
+    public function video($id)
+    {
+        $posts = array('hoge'=>'huga');
+        $status = 200;
+
+        $yt = new YTDManager();
+        $videoc = $yt->getData(YTDManager::TYPE_VIDEO, $id );
+        if($videoc
+            && $data = $videoc->getData() ) {
+
+            $posts['result'] = 'success';
+            $posts['data'] = $data;
+        } else {
+            $posts['result'] = 'not found';
+            $status = 404;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
+    /*
+     *  /api/channel/{id}
+     *  */
+    public function channel($id) {
+
+        $posts = array();
+        $status = 200;
+
+        $yt = new YTDManager();
+        $channelc = $yt->getData(YTDManager::TYPE_CHANNEL, $id );
+        if($channelc
+            && $data = $channelc->getData() ) {
+
+            $posts['result'] = 'success';
+            $posts['data'] = $data;
+        } else {
+            $posts['result'] = 'not found';
+            $status = 404;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    /*
+     *  /api/channelList
+     *  */
     function channelList() {
 
         $posts = array();
@@ -171,84 +144,26 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
-    public function channel($id)
-    {
-        $posts = array('hoge'=>'huga');
-        $status = 200;
-
-        $yt = new YTDManager();
-        $channel = $yt->getData(YTDManager::TYPE_CHANNEL, $id );
-        $posts['test'] = $channel->getData();
-
-        return response()->json($posts, $status)
-                ->header('Content-Type', 'application/json')
-                ->header('Access-Control-Allow-Methods', 'GET')
-                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
-    }
-
-    public function channel_raw($id)
-    {
-        $posts = array('hoge'=>'huga');
-        $status = 200;
-
-        $api = new YouTubeAPI();
-        $posts['test'] = $api->getChannel($id)['body'];
-
-        return response()->json($posts, $status)
-                ->header('Content-Type', 'application/json')
-                ->header('Access-Control-Allow-Methods', 'GET')
-                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
-    }
-
-    public function video($id)
-    {
-        $posts = array('hoge'=>'huga');
-        $status = 200;
-
-        $yt = new YTDManager();
-        $video = $yt->getData(YTDManager::TYPE_VIDEO, $id );
-        $posts['test'] = $video->getData();
-
-        return response()->json($posts, $status)
-                ->header('Content-Type', 'application/json')
-                ->header('Access-Control-Allow-Methods', 'GET')
-                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
-    }
-
-    public function videoc($id)
-    {
-        $posts = array('hoge'=>'huga');
-        $status = 200;
-
-        $yt = new YTDManager();
-        $video = $yt->getData(YTDManager::TYPE_VIDEO, $id, false );
-        $posts['test'] = $video->getData();
-
-        return response()->json($posts, $status)
-                ->header('Content-Type', 'application/json')
-                ->header('Access-Control-Allow-Methods', 'GET')
-                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
-    }
-
     /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     *  /api/channelVideos/{id}
      */
-    public function show($id)
-    {
+    public function channelVideos($id) {
+
         $posts = array();
+        $status = 200;
 
-        if($id && $id != '') {
-            $yt = new YTDManager();
-            $channel = $yt->getData(YTDManager::TYPE_CHANNEL, $id);
-            if($channel) {
-                $posts = $channel->getData();
+        $holoApp = new HoloApp();
+        $videoListc = $holoApp->getChannelVideos( $id );
+        if($videoListc
+            && $videoList = $videoListc->getDataList()) {
+
+            $posts['result'] = 'success';
+            $posts['data'] = array();
+            foreach($videoList as $videoc) {
+                $posts['data'][] = $videoc->getData();
             }
-
-            $status = 200;
         } else {
+            $posts['result'] = 'video not found';
             $status = 404;
         }
 
@@ -257,6 +172,8 @@ class BatchController extends Controller
                 ->header('Access-Control-Allow-Methods', 'GET')
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
+
+////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Show the form for creating a new resource.
