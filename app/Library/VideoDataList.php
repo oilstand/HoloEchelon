@@ -18,17 +18,8 @@ class VideoDataList extends BaseYTDList
 
     function updateData( $data, $updateCreatedAt = true, $updateUpdatedAt = true ) {
 
-        foreach($data as $dat) {
-            $this->data[] = new VideoData($dat);
-        }
-
-        if($updateCreatedAt
-            && isset($data['createdAt']) && $data['createdAt'] != '') {
-            $this->createdAt = $data['createdAt'];
-        }
-        if($updateUpdatedAt
-            && isset($data['updatedAt']) && $data['updatedAt'] != '') {
-            $this->updatedAt = $data['updatedAt'];
+        foreach((array)$data as $dat) {
+            $this->data[] = new VideoData((array)$dat);
         }
     }
 

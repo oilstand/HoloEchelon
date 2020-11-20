@@ -18,18 +18,10 @@ class ChannelDataList extends BaseYTDList
 
     function updateData( $data, $updateCreatedAt = true, $updateUpdatedAt = true ) {
 
-        foreach($data as $dat) {
+        foreach((array)$data as $dat) {
             $this->data[] = new ChannelData($dat);
         }
 
-        /*if($updateCreatedAt
-            && isset($data['createdAt']) && $data['createdAt'] != '') {
-            $this->createdAt = $data['createdAt'];
-        }
-        if($updateUpdatedAt
-            && isset($data['updatedAt']) && $data['updatedAt'] != '') {
-            $this->updatedAt = $data['updatedAt'];
-        }*/
     }
 
     function setDataFromAPIResult( $data ) {
