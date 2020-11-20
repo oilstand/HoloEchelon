@@ -57,7 +57,7 @@ class YTDManager
         );
 
         if($dsres) {
-            $datac = new $dataClass($dsres);
+            $datac = new $dataClass($dsres->get());
             if($datac->checkData()) {
                 return $datac;
             }
@@ -79,7 +79,12 @@ class YTDManager
         $dsres = $this->dsc->loadEntities( $keys );
 
         if($dsres) {
-            $datac = new $dataClass($dsres['found']);
+            $dataList = array();
+            foreach($dsres['found'] as $entity) {
+                $dataList[] = $entity->get();
+            }
+
+            $datac = new $dataClass($dataList);
             if($datac->checkData()) {
                 return $datac;
             }
@@ -98,7 +103,13 @@ class YTDManager
         $dsres = $this->dsc->runQuery( $query );
 
         if($dsres) {
-            $datac = new $dataClass($dsres);
+            $dataList = array();
+            for($i = 0; $i < 100 && $dsres->valid(); $i++) {
+                $dataList[] = $dsres->current()->get();
+                $dsres->next();
+            }
+
+            $datac = new $dataClass($dataList);//($dsres);
             if($datac->checkData()) {
                return $datac;
             }
@@ -108,6 +119,10 @@ class YTDManager
 
     function query() {
         return $this->dsc->query();
+    }
+
+    function runQuery($query) {
+        return $this->dsc->runQuery($query);
     }
 
     function getDataFromAPI( $dataType, $id, $datac = FALSE ) {
