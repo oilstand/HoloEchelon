@@ -78,9 +78,9 @@ class YTDManager
         }
         $dsres = $this->dsc->loadEntities( $keys );
 
-        if($dsres) {
+        if($dsres && isset($dsres['found'])) {
             $dataList = array();
-            foreach($dsres['found'] as $entity) {
+            foreach((array)$dsres['found'] as $entity) {
                 $dataList[] = $entity->get();
             }
 
@@ -230,7 +230,7 @@ class YTDManager
 
     public static function convertArray2KeyValue( $array ) {
         $ret = array();
-        foreach($array as $val) {
+        foreach((array)$array as $val) {
             $ret[$val->getId()] = $val;
         }
         return $ret;
