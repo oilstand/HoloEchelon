@@ -23,12 +23,15 @@ class BaseYTD
 
     function __construct( $data = array() ) {
         $this->createdAt = self::getDatetimeNowStr();
+        $this->changed = FALSE;
         $this->setData($data);
     }
 
     function setData( $data ) {
         $this->data = array();
+        $tmp = isset($this->changed) ? $this->changed : FALSE;
         $this->updateData( $data );
+        $this->changed = $tmp;
     }
 
     function updateData( $data, $updateCreatedAt = true, $updateUpdatedAt = true ) {
@@ -42,6 +45,7 @@ class BaseYTD
             && isset($data['updatedAt']) && $data['updatedAt'] != '') {
             $this->updatedAt = $data['updatedAt'];
         }
+        $this->changed = TRUE;
     }
 
     function setDataFromAPIResult( $data ) {
@@ -49,6 +53,7 @@ class BaseYTD
         $this->data = Utility::convertArray($data, static::YTD_API_DATA_MAP);
 
         $this->updateUpdatedAt();
+        $this->changed = TRUE;
     }
 
     function updateUpdatedAt() {
@@ -110,7 +115,8 @@ class BaseYTD
                     $diffs[$index] = $diff;
                 }
             } else if( !is_object($this->data[$index]) ) {
-                if($this->data[$index] !== $data[$index]) {
+                if(isset($data[$index])
+                    && $this->data[$index] !== $data[$index]) {
                     $diffs[$index] = $data[$index];
                 }
             } else {
@@ -118,6 +124,14 @@ class BaseYTD
             }
         }
         return $diffs;
+    }
+
+    function get($index) {
+        if(isset($this->data[$index])) {
+            return $this->data[$index];
+        } else {
+            return FALSE;
+        }
     }
 
     public static function compareArray( $src1, $src2 ) {
