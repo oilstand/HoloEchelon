@@ -11,7 +11,8 @@ class VideoData extends BaseYTD
     const YTD_LIST = array(
         'id','title','description','thumbnails','publishedAt',
         'channelId','channelTitle','liveBroadcastContent','embeddable',
-        'statistics','duration','type','actualStartTime','actualEndTime','scheduledStartTime'
+        'statistics','duration','type','actualStartTime','actualEndTime','scheduledStartTime',
+        'gameId'
     );
     const YTD_NOINDEX = array(
         'description','thumbnails','channelTitle','liveBroadcastContent',
