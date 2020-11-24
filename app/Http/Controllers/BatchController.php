@@ -96,6 +96,7 @@ class BatchController extends Controller
 
         $yt = new YTDManager();
         $channelc = $yt->getData(YTDManager::TYPE_CHANNEL, $id );
+
         if($channelc
             && $data = $channelc->getData() ) {
 
@@ -121,7 +122,7 @@ class BatchController extends Controller
         $status = 200;
 
         $yt = new YTDManager();
-        $query = $yt->query()->kind('channel')->limit(10);
+        $query = $yt->query()->kind('channel')->limit(30);
 
         $channelList = $yt->getDataListFromDSQuery('channels', $query);
 
@@ -154,6 +155,7 @@ class BatchController extends Controller
 
         $holoApp = new HoloApp();
         $videoListc = $holoApp->getChannelVideos( $id );
+
         if($videoListc
             && $videoList = $videoListc->getDataList()) {
 
@@ -171,6 +173,166 @@ class BatchController extends Controller
                 ->header('Content-Type', 'application/json')
                 ->header('Access-Control-Allow-Methods', 'GET')
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    /**
+     *  /api/newVideos/{id}
+     */
+    public function newVideos($id = 0) {
+
+        $posts = array();
+        $status = 200;
+
+        $holoApp = new HoloApp();
+        $videoListc = $holoApp->newVideosDS( $id );
+
+        if($videoListc
+            && $videoList = $videoListc->getDataList()) {
+
+            $posts['result'] = 'success';
+            $posts['data'] = array();
+            foreach($videoList as $videoc) {
+                $posts['data'][] = $videoc->getData();
+            }
+        } else {
+            $posts['result'] = 'video not found';
+            $status = 404;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    public function gameVideos($id) {
+
+        $posts = array();
+        $status = 200;
+
+        $holoApp = new HoloApp();
+        $videoListc = $holoApp->gameVideosDS( 0 + $id );
+
+        if($videoListc
+            && !(is_array($videoListc) && isset($videoListc['code']) && $videoListc['code'] !== HoloApp::RESULT_CODE_SUCCESS)
+            && $videoList = $videoListc->getDataList()) {
+
+            $posts['result'] = 'success';
+            $posts['data'] = array();
+            foreach($videoList as $videoc) {
+                $posts['data'][] = $videoc->getData();
+            }
+        } else {
+            $posts['result'] = 'video not found';
+            $status = 404;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    public function checkGameChannelVideos($id) {
+
+        $posts = array();
+        $status = 200;
+
+        $holoApp = new HoloApp();
+        $videoListc = $holoApp->channelVideosDS( $id );
+        if($videoListc
+            && $videoList = $videoListc->getDataList()) {
+
+            $result = $holoApp->checkGameTitle($videoList);
+            if(isset($result['changed']) && count($result['changed']) > 0) {
+                $holoApp->ytdm->saveBatch($result['changed']);
+            }
+            $posts['result'] = 'success';
+            $posts['data'] = array();
+            foreach($result['changed'] as $video) {
+                $posts['data'][] = $video->getData();
+            }
+        } else {
+            $posts['result'] = 'video not found';
+            $status = 404;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    function testInstantUpgrade($id) {
+
+        $posts = array();
+        $status = 200;
+
+        $holoApp = new HoloApp();
+        $videoListc = $holoApp->channelVideosDS( $id );
+        if($videoListc
+            && $videoList = $videoListc->getDataList()) {
+
+            $targetVideos= array();
+            foreach($videoList as $video){
+                if($video->get('gameId')) {
+                    $targetVideos[] = $video;
+                }
+            }
+            $result = $holoApp->upgradeInstant($targetVideos);
+
+            $saveDataList = array_merge($result['create'], $result['update']);
+            if(count($saveDataList) > 0) {
+                $holoApp->ytdm->saveBatch($saveDataList);
+            }
+            $posts['result'] = 'success';
+            $posts['data'] = array();
+            foreach($saveDataList as $video) {
+                $posts['data'][] = $video->getData();
+            }
+        } else {
+            $posts['result'] = 'video not found';
+            $status = 404;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+
+    }
+
+    function updateTest($id) {
+
+        $posts = array();
+        $status = 200;
+
+        $holoApp = new HoloApp();
+        $videoListc = $holoApp->newVideosDS( $id );
+        if($videoListc
+            && $videoList = $videoListc->getDataList()) {
+
+            $result = $holoApp->updateVideos($videoList);
+
+            $saveDataList = array_merge($result['create'], $result['update']);
+            if(count($saveDataList) > 0) {
+                $holoApp->ytdm->saveBatch($saveDataList);
+            }
+            $posts['result'] = 'success';
+            $posts['data'] = array();
+            foreach($saveDataList as $video) {
+                $posts['data'][] = $video->getData();
+            }
+        } else {
+            $posts['result'] = 'video not found';
+            $status = 404;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+
     }
 
 ////////////////////////////////////////////////////////////////////////////////
