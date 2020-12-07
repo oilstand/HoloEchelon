@@ -4,6 +4,7 @@ namespace App\Library;
 
 use App\Library\Utility;
 
+// YouTube Data
 class BaseYTD
 {
     // ds kind
@@ -23,6 +24,7 @@ class BaseYTD
 
     function __construct( $data = array() ) {
         $this->createdAt = self::getDatetimeNowStr();
+        $this->updatedAt = FALSE;
         $this->changed = FALSE;
         $this->setData($data);
     }
@@ -50,7 +52,7 @@ class BaseYTD
 
     function setDataFromAPIResult( $data ) {
         $this->apiRawData = $data;
-        $this->data = Utility::convertArray($data, static::YTD_API_DATA_MAP);
+        $this->data = Utility::convertArray($data, static::YTD_API_DATA_MAP) + $this->data;
 
         $this->updateUpdatedAt();
         $this->changed = TRUE;
@@ -154,7 +156,7 @@ class BaseYTD
         }
     }
 
-    static function getDatetimeNowStr() {
+    public static function getDatetimeNowStr() {
         $now = new \DateTime();
         $now->setTimezone(new \DateTimeZone(self::YTD_TIMEZONE));
         return $now->format('Y-m-d H:i:sP');
