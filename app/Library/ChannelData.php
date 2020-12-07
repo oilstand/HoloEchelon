@@ -10,7 +10,8 @@ class ChannelData extends BaseYTD
     const YTD_REFRESH_TIME = 'P1D';
     const YTD_LIST = array(
         'id','title','description','thumbnails','publishedAt',
-        'subscriberCount','viewCount','videoCount','videoSearchAt'
+        'subscriberCount','viewCount','videoCount','videoSearchAt',
+        'keywords','twitterSearchedAt'
     );
     const YTD_NOINDEX = array('description', 'thumbnails');
     const YTD_API_DATA_MAP = array(
@@ -30,5 +31,27 @@ class ChannelData extends BaseYTD
         array(  'src'=>array('statistics','videoCount'),
                 'dst'=>array('videoCount') ),
     );
+    function updateData( $data, $updateCreatedAt = true, $updateUpdatedAt = true ) {
+
+        parent::updateData( $data, $updateCreatedAt, $updateUpdatedAt );
+
+        if(!isset($this->data['twitterSearchedAt'])) {
+            $this->data['twitterSearchedAt'] = "2000-01-01 00:00:00+09:00";
+        }
+        if(!isset($this->data['videoSearchAt'])) {
+            $this->data['videoSearchAt'] = "2000-01-01 00:00:00+09:00";
+        }
+    }
+
+    function setDataFromAPIResult( $data ) {
+        parent::setDataFromAPIResult( $data );
+
+        if(!isset($this->data['twitterSearchedAt'])) {
+            $this->data['twitterSearchedAt'] = "2000-01-01 00:00:00+09:00";
+        }
+        if(!isset($this->data['videoSearchAt'])) {
+            $this->data['videoSearchAt'] = "2000-01-01 00:00:00+09:00";
+        }
+    }
 }
 
