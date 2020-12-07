@@ -7,14 +7,19 @@
         "laravel"
     ],
     "license": "MIT",
+    "repositories": {
+        "abraham/twitteroauth" : {
+            "type": "vcs",
+            "url": "https://github.com/oilstand/twitteroauth.git"
+        }
+    },
     "require": {
+        "abraham/twitteroauth2": "dev-test2",
         "fideloper/proxy": "^4.4",
         "fruitcake/laravel-cors": "^2.0",
         "google/cloud-datastore": "^1.12",
         "guzzlehttp/guzzle": "^7.2",
-        "laravel/framework": "^7.29"
-    },
-    "require-dev": {
+        "laravel/framework": "^7.30"
     },
     "config": {
         "optimize-autoloader": true,
