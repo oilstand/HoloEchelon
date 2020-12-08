@@ -15,7 +15,7 @@ class VideoData extends BaseYTD
         'gameId'
     );
     const YTD_NOINDEX = array(
-        'description','thumbnails','channelTitle','liveBroadcastContent',
+        'description','thumbnails','channelTitle',
         'embeddable','statistics','liveStreamingDetails','duration'
     );
     const YTD_API_DATA_MAP = array(
