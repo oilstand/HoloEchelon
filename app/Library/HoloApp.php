@@ -5,6 +5,7 @@ namespace App\Library;
 use App\Library\Utility;
 use App\Library\YTDManager;
 use App\Library\BaseYTD;
+use App\Library\Twitter\TwitterAPI;
 use Google\Cloud\Datastore\Query\Query;
 
 class HoloApp
@@ -16,6 +17,37 @@ class HoloApp
 
     function __construct() {
         $this->ytdm = new YTDManager();
+        $this->twApi = new TwitterAPI();
+    }
+
+    function searchTweetVideoIds( $keyword, &$idx = array() ) {
+
+        $apiResult = $this->twApi->search($keyword.' AND youtu.be');
+        //dumpMemory();
+        if($apiResult && $data = $apiResult->getData()) {
+            foreach((array)$data as $tweet ) {
+                $urls = $tweet->entities->urls;
+                foreach((array)$urls as $url) {
+                    preg_match(
+                        '/http[s]?:\/\/youtu\.be\/([a-zA-Z0-9_-]+)$/u',
+                        $url->expanded_url,
+                        $matches
+                    );
+
+                    if(isset($matches[1])) {
+                        $id = $matches[1];
+                        if(isset($idx[$id])) {
+                            $idx[$id]++;
+                        } else {
+                            $idx[$id] = 1;
+                        }
+                    }
+                }
+            }
+            unset($data);
+        }
+        unset($apiResult);
+        return $idx;
     }
 
     function upgradeInstant($videoList) {
@@ -126,7 +158,7 @@ class HoloApp
         return $saveDataList;
     }
 
-    function searchChannelVideos($id) {
+    function searchSaveChannelVideos($id) {
         // channnel video search
         $channelVideos = $this->ytdm->getDataNoCache(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id);
         if( $channelVideos
@@ -152,6 +184,17 @@ class HoloApp
         }
         return FALSE;
     }
+
+    function searchChannelVideos($id) {
+        // channnel video search
+        $channelVideos = $this->ytdm->getDataNoCache(YTDManager::TYPE_SEARCH_CHANNEL_VIDEOS, $id);
+        if( $channelVideos
+            && $apiVideos = $channelVideos->getDataList() ) {
+            return $channelVideos;
+        }
+        return FALSE;
+    }
+
     function getChannelVideos($id) {
 
         $channel = $this->ytdm->getData(YTDManager::TYPE_CHANNEL, $id );
@@ -173,7 +216,7 @@ class HoloApp
             }
 
             if($needRefresh) {
-                if($this->searchChannelVideos($id)) {
+                if($this->searchSaveChannelVideos($id)) {
                     $channel->updateData(array('videoSearchAt'=>BaseYTD::getDatetimeNowStr()));
                     $this->ytdm->save($channel);/**/
                 }
@@ -215,8 +258,9 @@ class HoloApp
 
         $query = $this->ytdm->query()
             ->kind('video')
-            ->order('actualStartTime', Query::ORDER_DESCENDING)
-            ->limit(100)->offset(100 * $page);
+//            ->order('actualStartTime', Query::ORDER_DESCENDING)
+            ->order('scheduledStartTime', Query::ORDER_DESCENDING)
+            ->limit(50)->offset(50 * $page);
 
         $videoListClass = $this->ytdm->getDataListFromDSQuery('videos', $query);
 
