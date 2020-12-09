@@ -30,8 +30,14 @@ Route::middleware(['cors'])->group(function () {
 
     Route::get('newVideos/{id}', 'BatchController@newVideos');
 
-//newVideos
+//tmp batches
+    Route::get('updnew', 'BatchController@batchUpdateNewVideos');
+//tmp batches
 
+    Route::get('twitter', 'BatchController@twitter');
+    Route::get('twitter/{id}', 'BatchController@twitterId');
+    Route::get('search', 'BatchController@batchChannelSearchVideos');
+    Route::get('updLiveComing', 'BatchController@batchUpdateLiveOrComingVideos');
 
     Route::get('gameVideos/{id}', 'BatchController@gameVideos');
 

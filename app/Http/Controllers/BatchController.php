@@ -6,7 +6,12 @@ use Illuminate\Http\Request;
 use App\Library\YouTubeAPI;
 use App\Library\YTDManager;
 use App\Library\BaseYTD;
+use App\Library\QuoteVideoData;
 use App\Library\HoloApp;
+use App\Library\Twitter\TwitterAPI;
+use Abraham\TwitterOAuth\TwitterOAuth;
+use Google\Cloud\Datastore\Query\Query;
+
 
 class BatchController extends Controller
 {
@@ -15,6 +20,410 @@ class BatchController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+    /**
+     * TwitterSearchBatch
+     */
+    public function twitter() {
+
+        function dumpMemory()
+        {
+            static $initialMemoryUse = null;
+
+            if ( $initialMemoryUse === null )
+            {
+                $initialMemoryUse = memory_get_usage();
+                var_dump("start:".number_format($initialMemoryUse));
+            }
+
+            var_dump(number_format(memory_get_usage() - $initialMemoryUse));
+        }
+
+        $status = 200;
+        $posts = array();
+
+        $holoApp = new HoloApp();
+
+        $searchLimit = getenv('TWITTER_SEARCH_LIMIT');
+        if(!$searchLimit)$searchLimit = 1;
+
+        $query = $holoApp->ytdm->query()
+            ->kind('channel')
+            ->order('twitterSearchedAt', Query::ORDER_ASCENDING)
+            ->limit($searchLimit);
+
+        $idx = array();
+        $channelIds = array();
+        $saveDataList = array();
+
+        $channelListClass = $holoApp->ytdm->getDataListFromDSQuery('channels', $query);
+        if($channelListClass && $channels = $channelListClass->getDataList()) {
+            foreach((array)$channels as $channel) {
+                $keywords = $channel->get('keywords');
+                $channelIds[] = $channel->get('id');
+
+                foreach((array)$keywords as $keyword) {
+                    $holoApp->searchTweetVideoIds($keyword, $idx);
+                }
+
+                $channel->updateData(array('twitterSearchedAt'=>BaseYTD::getDatetimeNowStr()));
+                $saveDataList[] = $channel;
+            }
+        }
+
+        if(!empty($idx)) {
+            $ids = array();
+            foreach($idx as $id => $value) {
+                $ids[] = $id;
+            }
+            $videoListC = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $ids);
+            $rVideos = array();
+            $cVideos = array();
+
+            if($videoListC && $videos = $videoListC->getDataList() ) {
+                foreach($videos as $video){
+                    if(in_array($video->get('channelId'), $channelIds, TRUE)){
+                        $cVideos[] = $video->getData();
+                        $saveDataList[] = $video;
+                    } else {
+                        $vdata = $video->getData();
+                        preg_match_all(
+                            '/http[s]?:\/\/(youtu\.be\/|www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/u',
+                            $video->get('description'),
+                            $matches
+                        );
+                        if(isset($matches[2]) && !empty($matches[2])) {
+                            $vdata['quote'] = $matches[2];
+                            $saveDataList[] = new QuoteVideoData($vdata);
+                        }
+                        $rVideos[] = $vdata;
+                    }
+                }
+                $posts['videos'] = $rVideos;
+                $posts['channelVideos'] = $cVideos;
+            }
+
+            unset($videoListC);
+            unset($videos);
+        }
+
+        if(!empty($saveDataList)) {
+            $holoApp->ytdm->saveBatch($saveDataList);
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    public function twitterId($id) {
+
+        function dumpMemory()
+        {
+            static $initialMemoryUse = null;
+
+            if ( $initialMemoryUse === null )
+            {
+                $initialMemoryUse = memory_get_usage();
+                var_dump("start:".number_format($initialMemoryUse));
+            }
+
+            var_dump(number_format(memory_get_usage() - $initialMemoryUse));
+        }
+
+        $status = 200;
+        $posts = array();
+
+        $holoApp = new HoloApp();
+
+        $query = $holoApp->ytdm->query()
+            ->kind('channel')
+            ->filter('id', '=', $id);
+
+        $idx = array();
+        $channelIds = array();
+        $saveDataList = array();
+
+        $channelListClass = $holoApp->ytdm->getDataListFromDSQuery('channels', $query);
+        if($channelListClass && $channels = $channelListClass->getDataList()) {
+            foreach((array)$channels as $channel) {
+                $keywords = $channel->get('keywords');
+                $channelIds[] = $channel->get('id');
+
+                foreach((array)$keywords as $keyword) {
+                    $holoApp->searchTweetVideoIds($keyword, $idx);
+                }
+
+                $channel->updateData(array('twitterSearchedAt'=>BaseYTD::getDatetimeNowStr()));
+                $saveDataList[] = $channel;
+            }
+        }
+
+        $posts['idx'] = $idx;
+        if(!empty($idx)) {
+            $ids = array();
+            foreach($idx as $id => $value) {
+                $ids[] = $id;
+            }
+            //@$posts['ids'] = $ids;
+            $videoListC = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $ids);
+            $rVideos = array();
+            $cVideos = array();
+
+            if($videoListC && $videos = $videoListC->getDataList() ) {
+                //@$posts['apiVideos'] = $videos;
+                foreach($videos as $video){
+                    if(in_array($video->get('channelId'), $channelIds, TRUE)){
+                        $cVideos[] = $video->getData();
+                        $saveDataList[] = $video;
+                    } else {
+                        $vdata = $video->getData();
+                        preg_match_all(
+                            '/http[s]?:\/\/(youtu\.be\/|www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/u',
+                            $video->get('description'),
+                            $matches
+                        );
+                        if(isset($matches[2]) && !empty($matches[2])) {
+                            $vdata['quote'] = $matches[2];
+                            $saveDataList[] = new QuoteVideoData($vdata);
+                        }
+                        $rVideos[] = $vdata;
+                    }
+                }
+                $posts['videos'] = $rVideos;
+                $posts['channelVideos'] = $cVideos;
+            }
+
+            unset($videoListC);
+            unset($videos);
+        }
+
+//        $posts['saveDataList'] = $saveDataList;
+        if(!empty($saveDataList)) {
+            $holoApp->ytdm->saveBatch($saveDataList);
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+    /**
+     *   Search channel Videos Batch
+     */
+    public function batchChannelSearchVideos() {
+
+        $status = 200;
+        $posts = array();
+
+        $holoApp = new HoloApp();
+
+        $searchLimit = getenv('CHANNEL_SEARCH_LIMIT');
+        if(!$searchLimit)$searchLimit = 1;
+
+        $query = $holoApp->ytdm->query()
+            ->kind('channel')
+            ->order('videoSearchAt', Query::ORDER_ASCENDING)
+            ->limit($searchLimit);
+
+        $channelIds = array();
+        $saveDataList = array();
+        $successCount = 0;
+
+        $channelListClass = $holoApp->ytdm->getDataListFromDSQuery('channels', $query);
+        if($channelListClass && $channels = $channelListClass->getDataList()) {
+            foreach((array)$channels as $channel) {
+                $channelId = $channel->get('id');
+                $channelIds[] = $channelId;
+
+                $channelVideoList = $holoApp->searchChannelVideos($channelId);
+                if($channelVideoList) {
+                    $vIds = $channelVideoList->getId();
+                    $dsVideoListc = $holoApp->ytdm->getDataListFromDS(YTDManager::TYPE_VIDEOS, $vIds );
+                    $apiVideoListc = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $vIds);
+
+                    $dsVideos = array();
+                    $apiVideos = array();
+                    if($dsVideoListc) {
+                        $dsVideos = $dsVideoListc->getDataList();
+                    }
+                    if($apiVideoListc) {
+                        $apiVideos = $apiVideoListc->getDataList();
+                    }
+                    $result = $holoApp->videoListMerge($dsVideos, $apiVideos);
+                    $saveDataList = array_merge($saveDataList, $result['create']);
+                    $saveDataList = array_merge($saveDataList, $result['update']);
+
+                    $channel->updateData(array('videoSearchAt'=>BaseYTD::getDatetimeNowStr()));
+                    $saveDataList[] = $channel;
+                    $successCount++;
+                }
+            }
+        }
+
+//        $posts['merged'] = $result;
+//        $posts['savedata'] = $saveDataList;
+        $posts['target'] = $channelIds;
+        $posts['success'] = $successCount;
+
+        if(!empty($saveDataList)) {
+            $holoApp->ytdm->saveBatch($saveDataList);
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    /**
+     *
+     */
+    public function batchUpdateLiveOrComingVideos() {
+        $status = 200;
+        $posts = array();
+
+        $holoApp = new HoloApp();
+
+        $targetVideos = array();
+        $vIds = array();
+
+        $query = $holoApp->ytdm->query()
+            ->kind('video')
+            ->filter('liveBroadcastContent', '=', 'upcoming')
+            ->limit(50);
+        $videoListClass = $holoApp->ytdm->getDataListFromDSQuery('videos', $query);
+        if($videoListClass && $videos = $videoListClass->getDataList()){
+            $targetVideos = $videos;
+            $vIds = $videoListClass->getId();
+        }
+
+        $query2 = $holoApp->ytdm->query()
+            ->kind('video')
+            ->filter('liveBroadcastContent', '=', 'live')
+            ->limit(50);
+        $videoList2Class = $holoApp->ytdm->getDataListFromDSQuery('videos', $query2);
+        if($videoList2Class && $videos = $videoList2Class->getDataList()){
+            $targetVideos = array_merge($targetVideos, $videos);
+            $vIds = array_merge($vIds, $videoList2Class->getId());
+        }
+
+        $saveDataList = array();
+        if(!empty($targetVideos)) {
+
+            $apiVideoListc = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $vIds);
+
+            $dsVideos = $targetVideos;
+            $apiVideos = array();
+            $apiVideoIds = array();
+            if($apiVideoListc) {
+                $apiVideos = $apiVideoListc->getDataList();
+                $apiVideoIds = $apiVideoListc->getId();
+            }
+            $result = $holoApp->videoListMerge($dsVideos, $apiVideos);
+
+            $saveDataList = array_merge($result['update'], $result['create']);
+
+            $notFoundIds = array();
+            foreach($vIds as $vId) {
+                if(!in_array($vId, $apiVideoIds, TRUE)) {
+                    $notFoundIds[] = $vId;
+                }
+            }
+            if(!empty($notFoundIds)) {
+                foreach($notFoundIds as $notFoundId) {
+                    foreach((array)$targetVideos as $videoc) {
+                        if($videoc->getId() === $notFoundId) {
+                            $videoc->updateData(array('liveBroadcastContent'=>'suspended'));
+                            $saveDataList[] = $videoc;
+                            break;
+                        }
+                    }
+                }
+            }
+            $posts['notfound'] = $notFoundIds;
+        }
+        if(!empty($saveDataList)) {
+            $holoApp->ytdm->saveBatch($saveDataList);
+        }
+
+        $posts['targets'] = $vIds;
+//        $posts['retv'] = $apiVideos;
+        $posts['saved'] = $saveDataList;
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    /**
+     *      channelデータ twitterSearchedAt/videoSearchAt 穴埋め用
+     */
+    private function batchChannelSetTwitterSearchedAt( $holoApp ) {
+        $query = $holoApp->ytdm->query()
+            ->kind('channel');
+
+        $channelListClass = $holoApp->ytdm->getDataListFromDSQuery('channels', $query);
+        $updList = array();
+        if($channelListClass && $dataList = $channelListClass->getDataList() ) {
+            foreach((array)$dataList as $channel){
+                if($channel->get('twitterSearchedAt') == FALSE || $channel->get('videoSearchAt') == FALSE) {
+                    if($channel->get('twitterSearchedAt') == FALSE) {
+                        $channel->updateData(array('twitterSearchedAt'=>'2000-01-01 00:00:00+09:00'));
+                    }
+                    if($channel->get('videoSearchAt') == FALSE) {
+                        $channel->updateData(array('videoSearchAt'=>'2000-01-01 00:00:00+09:00'));
+                    }
+                    $updList[] = $channel;
+                }
+            }
+            if(!empty($updList)) {
+                $holoApp->ytdm->saveBatch($updList);
+            }
+        }
+
+    }
+
+    /**
+     *      scheduledStartTime新しい順にデータを更新する
+     */
+    public function batchUpdateNewVideos() {
+        $status = 200;
+        $posts = array();
+
+        $holoApp = new HoloApp();
+        $saveDataList = array();
+        $videoListc = $holoApp->newVideosDS( 0 );
+        if($videoListc) {
+
+            $vIds = $videoListc->getId();
+
+            //$dsVideoListc = $holoApp->ytdm->getDataListFromDS(YTDManager::TYPE_VIDEOS, $vIds );
+            $apiVideoListc = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $vIds);
+
+            $dsVideos = array();
+            $apiVideos = array();
+            if($videoListc) {
+                $dsVideos = $videoListc->getDataList();
+            }
+            if($apiVideoListc) {
+                $apiVideos = $apiVideoListc->getDataList();
+            }
+            $result = $holoApp->videoListMerge($dsVideos, $apiVideos);
+            //var_dump($result);
+            $saveDataList = array_merge($result['update'], $result['create']);
+        }
+        if(!empty($saveDataList)) {
+            $holoApp->ytdm->saveBatch($saveDataList);
+        }
+        $posts = $saveDataList;
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
     public function index()
     {
         $posts = array('hoge'=>'huga');
@@ -205,6 +614,12 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
+
+
+///////////////////////////////////////////////////////////////////////
+
+
+
     public function gameVideos($id) {
 
         $posts = array();
@@ -336,59 +751,4 @@ class BatchController extends Controller
     }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
-    }
 }
