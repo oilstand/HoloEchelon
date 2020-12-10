@@ -531,7 +531,7 @@ class BatchController extends Controller
         $status = 200;
 
         $yt = new YTDManager();
-        $query = $yt->query()->kind('channel')->limit(30);
+        $query = $yt->query()->kind('channel')->limit(40);
 
         $channelList = $yt->getDataListFromDSQuery('channels', $query);
 
