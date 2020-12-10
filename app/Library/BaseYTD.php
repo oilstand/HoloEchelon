@@ -141,9 +141,11 @@ class BaseYTD
 
             $diffs = array();
             foreach($src1 as $key => $val) {
-                $diff = self::compareArray($src1[$key], $src2[$key]);
-                if($diff) {
-                    $diffs[$key] = $diff;
+                if(isset($src2[$key])){
+                    $diff = self::compareArray($src1[$key], $src2[$key]);
+                    if($diff) {
+                        $diffs[$key] = $diff;
+                    }
                 }
             }
             return empty($diffs) ? FALSE : $diffs;
