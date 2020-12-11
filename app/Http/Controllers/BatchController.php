@@ -76,35 +76,47 @@ class BatchController extends Controller
             foreach($idx as $id => $value) {
                 $ids[] = $id;
             }
-            $videoListC = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $ids);
+            $posts['targetNum'] = count($ids);
+
+            $requestNum = (int)((count($ids) + 49) / 50);
+            $posts['requestNum'] = $requestNum;
+
+            //$posts['targetIds'] = array();
+
             $rVideos = array();
             $cVideos = array();
+            for($i = 0; $i < $requestNum; $i++){
+                $targetIds = array_slice($ids, $i * 50, 50);
+                //$posts['targetIds'][] = $targetIds;
 
-            if($videoListC && $videos = $videoListC->getDataList() ) {
-                foreach($videos as $video){
-                    if(in_array($video->get('channelId'), $channelIds, TRUE)){
-                        $cVideos[] = $video->getData();
-                        $saveDataList[] = $video;
-                    } else {
-                        $vdata = $video->getData();
-                        preg_match_all(
-                            '/http[s]?:\/\/(youtu\.be\/|www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/u',
-                            $video->get('description'),
-                            $matches
-                        );
-                        if(isset($matches[2]) && !empty($matches[2])) {
-                            $vdata['quote'] = $matches[2];
-                            $saveDataList[] = new QuoteVideoData($vdata);
+                $videoListC = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $targetIds);
+
+                if($videoListC && $videos = $videoListC->getDataList() ) {
+                    foreach($videos as $video){
+                        if(in_array($video->get('channelId'), $channelIds, TRUE)){
+                            $cVideos[] = $video->getData();
+                            $saveDataList[] = $video;
+                        } else {
+                            $vdata = $video->getData();
+                            preg_match_all(
+                                '/http[s]?:\/\/(youtu\.be\/|www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/u',
+                                $video->get('description'),
+                                $matches
+                            );
+                            if(isset($matches[2]) && !empty($matches[2])) {
+                                $vdata['quote'] = $matches[2];
+                                $saveDataList[] = new QuoteVideoData($vdata);
+                            }
+                            $rVideos[] = $vdata;
                         }
-                        $rVideos[] = $vdata;
                     }
                 }
-                $posts['videos'] = $rVideos;
-                $posts['channelVideos'] = $cVideos;
-            }
 
-            unset($videoListC);
-            unset($videos);
+                unset($videoListC);
+                unset($videos);
+            }
+            $posts['videos'] = $rVideos;
+            $posts['channelVideos'] = $cVideos;
         }
 
         if(!empty($saveDataList)) {
@@ -172,7 +184,6 @@ class BatchController extends Controller
             $cVideos = array();
 
             if($videoListC && $videos = $videoListC->getDataList() ) {
-                //@$posts['apiVideos'] = $videos;
                 foreach($videos as $video){
                     if(in_array($video->get('channelId'), $channelIds, TRUE)){
                         $cVideos[] = $video->getData();
