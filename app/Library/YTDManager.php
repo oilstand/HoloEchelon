@@ -16,6 +16,7 @@ class YTDManager
     const TYPE_VIDEO = 'video';
     const TYPE_VIDEOS = 'videos';
     const TYPE_QUOTE_VIDEO = 'QuoteVideo';
+    const TYPE_QUOTE_VIDEOS = 'quoteVideos';
     const TYPE_SEARCH_CHANNEL_VIDEOS = 'channelVideos';
 
     const YTDM_DATA_API_MAP = array(
@@ -33,6 +34,10 @@ class YTDManager
         ),
         self::TYPE_QUOTE_VIDEO=>array(
             'class'=>__NAMESPACE__ . '\\' . 'QuoteVideoData',
+            'api'=>'getVideo'
+        ),
+        self::TYPE_QUOTE_VIDEOS=>array(
+            'class'=>__NAMESPACE__ . '\\' . 'QuoteVideoDataList',
             'api'=>'getVideo'
         ),
         self::TYPE_VIDEOS=>array(
