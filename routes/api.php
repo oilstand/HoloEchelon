@@ -19,29 +19,37 @@ use Illuminate\Support\Facades\Route;
 });*/
 
 Route::middleware(['cors'])->group(function () {
-/*
-    Route::get('videos/{id}', 'BatchController@videos_test');*/
 
+// for production ->
     Route::get('video/{id}', 'BatchController@video');
     Route::get('channelList', 'BatchController@channelList');
     Route::get('channel/{id}', 'BatchController@channel');
     Route::get('channelVideos/{id}', 'BatchController@channelVideos');
-    Route::get('channelGameVideos/{id}', 'BatchController@checkGameChannelVideos');
-
+    Route::get('quoteVideos/{id}', 'BatchController@quoteVideos');
+    // temp
     Route::get('newVideos/{id}', 'BatchController@newVideos');
+    //consider
+    Route::get('gameVideos/{id}', 'BatchController@gameVideos');
+// <- for production
 
-//tmp batches
-    Route::get('updnew', 'BatchController@batchUpdateNewVideos');
-//tmp batches
+// for develop ->
+    Route::get('channelGameVideos/{id}', 'BatchController@checkGameChannelVideos');
+    Route::get('videos', 'BatchController@videos');
+// <- for develop
 
+// cron batch ->
     Route::get('twitter', 'BatchController@twitter');
-    Route::get('twitter/{id}', 'BatchController@twitterId');
     Route::get('search', 'BatchController@batchChannelSearchVideos');
     Route::get('updLiveComing', 'BatchController@batchUpdateLiveOrComingVideos');
+    // for maintenance
+    //Route::get('twitter/{id}', 'BatchController@twitterId');
+    //Route::get('updnew', 'BatchController@batchUpdateNewVideos');
+// <- cron batch
 
-    Route::get('gameVideos/{id}', 'BatchController@gameVideos');
-
-    Route::get('upgrade/{id}', 'BatchController@testInstantUpgrade');
-    Route::get('update/{id}', 'BatchController@updateTest');
+// for test ->
+    //Route::get('upgrade/{id}', 'BatchController@testInstantUpgrade');
+    //Route::get('update/{id}', 'BatchController@updateTest');
+    //Route::get('videos/{id}', 'BatchController@videos_test');
+// <- for test
 
 });
