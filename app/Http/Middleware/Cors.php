@@ -29,8 +29,11 @@ class Cors
             case "3333-cs-491358302187-default.asia-east1.cloudshell.dev":
                 $allowHost = "3333-cs-491358302187-default.asia-east1.cloudshell.dev";
                 break;
-            case "client-test-dot-livetimelineshift.appspot.com":
-                $allowHost = "client-test-dot-livetimelineshift.appspot.com";
+            case "holoshift.appspot.com":
+                $allowHost = "holoshift.appspot.com";
+                break;
+            case "holoechelon.com":
+                $allowHost = "holoechelon.com";
                 break;
             default:
                 break;
