@@ -63,7 +63,7 @@ class BatchController extends Controller
                 $channelIds[] = $channel->get('id');
 
                 foreach((array)$keywords as $keyword) {
-                    $holoApp->searchTweetVideoIds($keyword, $idx);
+                    $holoApp->searchTweetVideoIds($keyword.' AND youtu.be', $idx);
                 }
 
                 $channel->updateData(array('twitterSearchedAt'=>BaseYTD::getDatetimeNowStr()));
@@ -164,7 +164,7 @@ class BatchController extends Controller
                 $channelIds[] = $channel->get('id');
 
                 foreach((array)$keywords as $keyword) {
-                    $holoApp->searchTweetVideoIds($keyword, $idx);
+                    $holoApp->searchTweetVideoIds($keyword.' AND youtu.be', $idx);
                 }
 
                 $channel->updateData(array('twitterSearchedAt'=>BaseYTD::getDatetimeNowStr()));
@@ -367,6 +367,17 @@ class BatchController extends Controller
                 ->header('Access-Control-Allow-Methods', 'GET')
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
+
+    public function batchTwitterSearchOfficialTweets(){
+        $status = 200;
+        $posts = array();
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    // list:1339139547653840896 url:youtu.be
 
     /**
      *      channelデータ twitterSearchedAt/videoSearchAt 穴埋め用
@@ -625,6 +636,84 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
+    public function quoteVideos($id) {
+        $posts = array();
+        $status = 200;
+
+        $holoApp = new HoloApp();
+
+        $targetVideos = array();
+        $vIds = array();
+
+        $query = $holoApp->ytdm->query()
+            ->kind('quoteVideo')
+            ->filter('quote', '=', $id)
+            ->limit(50);
+        $videoListClass = $holoApp->ytdm->getDataListFromDSQuery('quoteVideos', $query);
+        if($videoListClass && $videoList = $videoListClass->getDataList()){
+            $posts['data'] = array();
+            $posts['result'] = 'success';
+            foreach($videoList as $videoc) {
+                $posts['data'][] = $videoc->getData();
+            }
+        } else {
+            $posts['result'] = 'notfound';
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+
+    }
+
+    public function videos(Request $request) {
+        $posts = array('api'=>'videos');
+        $status = 200;
+
+        $holoApp = new HoloApp();
+
+        $rawDateStr = $request->input('date', '');
+        $range = (int)$request->input('range', 1);
+        $range = $range > 0 && $range <= 3 ? $range : 1;
+        preg_match('/([0-9]{4})-([0-9]{2})-([0-9]{2})/', $rawDateStr, $result);
+
+        if( isset($result[1])
+            && isset($result[2])
+            && isset($result[3]) ) {
+            $dateStr = "${result[1]}-${result[2]}-${result[3]} 23:59:59+09:00";
+            $sinceDate = new \DateTime($dateStr);
+            $sinceDate->setTimezone(new \DateTimeZone('GMT'));
+            $untilDate = new \DateTime($dateStr);
+            $untilDate->setTimezone(new \DateTimeZone('GMT'));
+            $interval = new \DateInterval("P${range}D");
+            $sinceDate->sub($interval);
+
+            $posts['sinceDate'] = $sinceDate->format(DATE_ATOM);
+            $posts['untilDate'] = $untilDate->format(DATE_ATOM);
+
+            $query = $holoApp->ytdm->query()
+                ->kind('video')
+                ->filter('scheduledStartTime', '>', $sinceDate->format(DATE_ATOM))
+                ->filter('scheduledStartTime', '<=', $untilDate->format(DATE_ATOM));
+            $videoListClass = $holoApp->ytdm->getDataListFromDSQuery('videos', $query);
+
+            if($videoListClass && $videoList = $videoListClass->getDataList()){
+                $posts['data'] = array();
+                $posts['result'] = 'success';
+                foreach($videoList as $videoc) {
+                    $posts['data'][] = $videoc->getData();
+                }
+            } else {
+                $posts['result'] = 'notfound';
+            }
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
 
 
 ///////////////////////////////////////////////////////////////////////

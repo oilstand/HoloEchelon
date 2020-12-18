@@ -22,7 +22,7 @@ class HoloApp
 
     function searchTweetVideoIds( $keyword, &$idx = array() ) {
 
-        $apiResult = $this->twApi->search($keyword.' AND youtu.be');
+        $apiResult = $this->twApi->search($keyword);
         //dumpMemory();
         if($apiResult && $data = $apiResult->getData()) {
             foreach((array)$data as $tweet ) {
