@@ -26,19 +26,6 @@ class BatchController extends Controller
      */
     public function twitter() {
 
-        function dumpMemory()
-        {
-            static $initialMemoryUse = null;
-
-            if ( $initialMemoryUse === null )
-            {
-                $initialMemoryUse = memory_get_usage();
-                var_dump("start:".number_format($initialMemoryUse));
-            }
-
-            var_dump(number_format(memory_get_usage() - $initialMemoryUse));
-        }
-
         $status = 200;
         $posts = array();
 
@@ -62,8 +49,10 @@ class BatchController extends Controller
                 $keywords = $channel->get('keywords');
                 $channelIds[] = $channel->get('id');
 
-                foreach((array)$keywords as $keyword) {
-                    $holoApp->searchTweetVideoIds($keyword.' AND youtu.be', $idx);
+                if(!empty($keywords)){
+                    foreach((array)$keywords as $keyword) {
+                        $holoApp->searchTweetVideoIds($keyword.' AND youtu.be', $idx);
+                    }
                 }
 
                 $channel->updateData(array('twitterSearchedAt'=>BaseYTD::getDatetimeNowStr()));
@@ -71,53 +60,11 @@ class BatchController extends Controller
             }
         }
 
-        if(!empty($idx)) {
-            $ids = array();
-            foreach($idx as $id => $value) {
-                $ids[] = $id;
-            }
-            $posts['targetNum'] = count($ids);
+        $result = $this->updateVideoDataFromIds( $holoApp, $idx );
+        $posts = $result;
 
-            $requestNum = (int)((count($ids) + 49) / 50);
-            $posts['requestNum'] = $requestNum;
-
-            //$posts['targetIds'] = array();
-
-            $rVideos = array();
-            $cVideos = array();
-            for($i = 0; $i < $requestNum; $i++){
-                $targetIds = array_slice($ids, $i * 50, 50);
-                //$posts['targetIds'][] = $targetIds;
-
-                $videoListC = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $targetIds);
-
-                if($videoListC && $videos = $videoListC->getDataList() ) {
-                    foreach($videos as $video){
-                        if(in_array($video->get('channelId'), $channelIds, TRUE)){
-                            $cVideos[] = $video->getData();
-                            $saveDataList[] = $video;
-                        } else {
-                            $vdata = $video->getData();
-                            preg_match_all(
-                                '/http[s]?:\/\/(youtu\.be\/|www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/u',
-                                $video->get('description'),
-                                $matches
-                            );
-                            if(isset($matches[2]) && !empty($matches[2])) {
-                                $vdata['quote'] = $matches[2];
-                                $saveDataList[] = new QuoteVideoData($vdata);
-                            }
-                            $rVideos[] = $vdata;
-                        }
-                    }
-                }
-
-                unset($videoListC);
-                unset($videos);
-            }
-            $posts['videos'] = $rVideos;
-            $posts['channelVideos'] = $cVideos;
-        }
+        $saveDataList = array_merge($saveDataList, $result['create']);
+        $saveDataList = array_merge($saveDataList, $result['update']);
 
         if(!empty($saveDataList)) {
             $holoApp->ytdm->saveBatch($saveDataList);
@@ -127,6 +74,144 @@ class BatchController extends Controller
                 ->header('Content-Type', 'application/json')
                 ->header('Access-Control-Allow-Methods', 'GET')
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+    private function updateVideoDataFromIds($holoApp, $idx) {
+        $retData = array();
+
+        if(!empty($idx)) {
+
+            $channelList = $holoApp->channelList();
+            $channelIds = array();
+            foreach((array)$channelList as $channel) {
+                $channelIds[] = $channel['id'];
+            }
+
+            $ids = array();
+            foreach($idx as $id => $value) {
+                $ids[] = $id;
+            }
+            $retData['ids'] = $ids;
+
+            // 200id単位でquoteVideoの登録チェック
+            $idsCount = count($ids);
+            $dsTryNum = (int)(($idsCount + 199) / 200);
+
+            $resData['quoteCheck'] = array('idsCount'=>$idsCount, 'dsRequestCount'=>$dsTryNum);
+
+            $quoteVideoBuffer = array();
+            $skipQuoteVideoIds = array();
+            for($i = 0; $i < $dsTryNum; $i++ ) {
+                $tmpReqIds = array_slice($ids, $i * 200, 200);
+
+                $quoteVideosListC = $holoApp->ytdm->getDataListFromDS('quoteVideos', $tmpReqIds);
+
+                if($quoteVideosListC && $videoList = $quoteVideosListC->getDataList()) {
+                    foreach((array)$videoList as $video) {
+                        if(in_array($video->get('channelId'), $channelIds, TRUE) == false){
+                            if($video->needRefresh()) {
+                                $quoteVideoBuffer[] = $video;
+                            } else {
+                                $skipQuoteVideoIds[] = $video->getId();
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach((array)$skipQuoteVideoIds as $id) {
+                $index = array_search($id, $ids, TRUE);
+                array_splice($ids, $index, 1);
+            }
+            //$retData['cVideoCheckIds'] = $ids;
+            $retData['skipQuoteVideoIds'] = $skipQuoteVideoIds;
+
+            // 200id単位でvideoの登録チェック
+            $idsCount = count($ids);
+            $dsTryNum = (int)(($idsCount + 199) / 200);
+            $resData['channelCheck'] = array('idsCount'=>$idsCount, 'dsRequestCount'=>$dsTryNum);
+
+            $cVideoBuffer = array();
+            $skipCVideoIds = array();
+            for($i = 0; $i < $dsTryNum; $i++ ) {
+                $tmpReqIds = array_slice($ids, $i * 200, 200);
+
+                $videosListC = $holoApp->ytdm->getDataListFromDS('videos', $tmpReqIds);
+
+                if($videosListC && $videoList = $videosListC->getDataList()) {
+                    foreach((array)$videoList as $video) {
+                        if(in_array($video->get('channelId'), $channelIds, TRUE)) {
+                            if($video->needRefresh()) {
+                                $cVideoBuffer[] = $video;
+                            } else {
+                                $skipCVideoIds[] = $video->getId();
+                            }
+                        }
+                    }
+                }
+            }
+            $retData['skipCVideoIds'] = $skipCVideoIds;
+
+            foreach((array)$skipCVideoIds as $id) {
+                $index = array_search($id, $ids, TRUE);
+                array_splice($ids, $index, 1);
+            }
+
+            // 50id単位でYTリクエスト
+            $idsCount = count($ids);
+            $apiRequestNum = (int)(($idsCount + 49) / 50);
+
+            $retData['YTRequest'] = array('ids'=>$ids, 'count'=>$idsCount, 'apiRequestCount'=>$apiRequestNum);
+            $retData['bufferCount'] = array('quote'=>count($quoteVideoBuffer),'channel'=>count($cVideoBuffer));
+
+            $qVideos = array();
+            $cVideos = array();
+            for($i = 0; $i < $apiRequestNum; $i++) {
+                $targetIds = array_slice($ids, $i * 50, 50);
+
+                $videoListC = $holoApp->ytdm->getDataNoCache(YTDManager::TYPE_VIDEOS, $targetIds);
+
+                if($videoListC && $videos = $videoListC->getDataList() ) {
+                    foreach($videos as $video){
+                        if(in_array($video->get('channelId'), $channelIds, TRUE)){
+                            // channel video
+                            $cVideos[] = $video;
+                        } else {
+                            // quote video
+                            $vdata = $video->getData();
+                            preg_match_all(
+                                '/http[s]?:\/\/(youtu\.be\/|www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]+)/u',
+                                $video->get('description'),
+                                $matches
+                            );
+                            if(isset($matches[2]) && !empty($matches[2])) {
+                                $vdata['quote'] = $matches[2];
+                                $qVideos[] = new QuoteVideoData($vdata);
+                            }
+                        }
+                    }
+                }
+                unset($videoListC);
+                unset($videos);
+            }
+
+            $result1 = $holoApp->videoListMerge($quoteVideoBuffer, $qVideos);
+            $result2 = $holoApp->videoListMerge($cVideoBuffer, $cVideos);
+
+            $res = array('quoteRes'=>$result1, 'channelRes'=>$result2);
+            foreach((array)$res as $resName => $result) {
+                $retData['result'][$resName] = array();
+                foreach((array)$result as $resType => $videoList) {
+                    $retData['result'][$resName][$resType] = array();
+                    foreach((array)$videoList as $video) {
+                        $retData['result'][$resName][$resType][] = $video->getId();
+                    }
+                }
+            }
+            $retData['update'] = array_merge($result1['update'], $result2['update']);
+            $retData['create'] = array_merge($result1['create'], $result2['create']);
+        }
+        return $retData;
     }
 
     public function twitterId($id) {
@@ -552,19 +637,13 @@ class BatchController extends Controller
         $posts = array();
         $status = 200;
 
-        $yt = new YTDManager();
-        $query = $yt->query()->kind('channel')->limit(40);
+        $holoApp = new HoloApp();
 
-        $channelList = $yt->getDataListFromDSQuery('channels', $query);
+        $channelList = $holoApp->channelList();
 
-        $posts['data'] = array();
-
-        if($channelList
-            && $channels = $channelList->getDataList()) {
+        if($channelList && !empty($channelList)) {
             $posts['result'] = 'success';
-            foreach($channels as $channel) {
-                $posts['data'][] = $channel->getData();
-            }
+            $posts['data'] = $channelList;
         } else {
             $posts['result'] = 'not found';
             $status = 404;

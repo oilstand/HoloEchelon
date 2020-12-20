@@ -7,7 +7,7 @@ use App\Library\VideoData;
 class QuoteVideoData extends VideoData
 {
     const YTD_KIND = 'quoteVideo';
-    const YTD_REFRESH_TIME = 'P2D';
+    const YTD_REFRESH_TIME = 'P7D';
     const YTD_LIST = array(
         'id','title','description','thumbnails','publishedAt',
         'channelId','channelTitle','liveBroadcastContent','embeddable',

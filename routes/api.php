@@ -35,6 +35,8 @@ Route::middleware(['cors'])->group(function () {
 // for develop ->
     Route::get('channelGameVideos/{id}', 'BatchController@checkGameChannelVideos');
     Route::get('videos', 'BatchController@videos');
+
+    //Route::get('twitterTest', 'BatchController@twitterTest');
 // <- for develop
 
 // cron batch ->

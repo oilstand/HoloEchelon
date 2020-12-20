@@ -15,6 +15,10 @@ class HoloApp
 
     const CHANNEL_VIDEO_SEARCH_INTERVAL = "P1D";
 
+    const CACHE_STORE_KIND = 'cache';
+    const CACHE_NAME_CHANNEL_LIST = 'c_channelList';
+    const CACHE_TIME_CHANNEL_LIST = 'P1D';
+
     function __construct() {
         $this->ytdm = new YTDManager();
         $this->twApi = new TwitterAPI();
@@ -267,6 +271,50 @@ class HoloApp
         return $videoListClass
                 ? $videoListClass
                 : self::fail(self::RESULT_CODE_NOTFOUND, 'video not found');
+    }
+
+    function channelList() {
+
+        $key = $this->ytdm->dsc->key(self::CACHE_STORE_KIND, self::CACHE_NAME_CHANNEL_LIST);
+        $cacheResult = $this->ytdm->dsc->loadEntity($key);
+
+        if($cacheResult
+            && $rawData = $cacheResult->get()
+            ) {
+
+            if(isset($rawData['data']) && isset($rawData['data']['channels'])){
+                $now = new \DateTime();
+                $createdAt = new \DateTime($rawData['created_at']);
+                $interval = new \DateInterval(self::CACHE_TIME_CHANNEL_LIST);
+                $createdAt->add($interval);
+
+                if($createdAt > $now) {
+                    return $rawData['data']['channels'];
+                }
+            }
+        }
+
+        $query = $this->ytdm->query()->kind('channel')->limit(50);
+        $channelList = $this->ytdm->getDataListFromDSQuery('channels', $query);
+
+        $resChannels = array();
+        if($channelList
+            && $channels = $channelList->getDataList()) {
+            foreach($channels as $channel) {
+                $tmpChannel = array();
+                $rawChannel = $channel->getData();
+                Utility::copyArrayListed($rawChannel, $tmpChannel, array('id','title','color'));
+                $resChannels[] = $tmpChannel;
+            }
+        }
+
+        $cacheData = array();
+        $cacheData['data'] = array('channels'=>$resChannels);
+        $cacheData['created_at'] = BaseYTD::getDatetimeNowStr();
+        $entity = $this->ytdm->dsc->entity($key, $cacheData, array('data'));
+        $this->ytdm->dsc->saveEntity($entity);/**/
+
+        return $resChannels;
     }
 
     function gameVideosDS($id) {
