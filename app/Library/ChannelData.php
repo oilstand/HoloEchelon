@@ -11,7 +11,7 @@ class ChannelData extends BaseYTD
     const YTD_LIST = array(
         'id','title','description','thumbnails','publishedAt',
         'subscriberCount','viewCount','videoCount','videoSearchAt',
-        'keywords','twitterSearchedAt','color'
+        'keywords','twitterSearchedAt','color','country'
     );
     const YTD_NOINDEX = array('description', 'thumbnails','color');
     const YTD_API_DATA_MAP = array(
