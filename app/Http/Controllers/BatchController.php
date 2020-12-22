@@ -478,6 +478,33 @@ class BatchController extends Controller
     public function batchTwitterSearchOfficialTweets(){
         $status = 200;
         $posts = array();
+
+        $envBatch = getenv('BATCH_SERVER', false);
+
+        if($envBatch == 1) {
+            $holoApp = new HoloApp();
+
+            $holoApp->searchTweetVideoIds('list:1339139547653840896 url:youtu.be', $idx);
+
+            if(!empty($idx)) {
+                $result = $this->updateVideoDataFromIds( $holoApp, $idx );
+                $posts = $result;
+
+                $saveDataList = array();
+                if(isset($result['create'])) {
+                    $saveDataList = array_merge($saveDataList, $result['create']);
+                }
+                if(isset($result['update'])) {
+                    $saveDataList = array_merge($saveDataList, $result['update']);
+                }
+                if(!empty($saveDataList)) {
+                    $holoApp->ytdm->saveBatch($saveDataList);
+                }
+            }
+        } else {
+            $status = 403;
+        }
+
         return response()->json($posts, $status)
                 ->header('Content-Type', 'application/json')
                 ->header('Access-Control-Allow-Methods', 'GET')

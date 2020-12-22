@@ -43,6 +43,7 @@ Route::middleware(['cors'])->group(function () {
     Route::get('twitter', 'BatchController@twitter');
     Route::get('search', 'BatchController@batchChannelSearchVideos');
     Route::get('updLiveComing', 'BatchController@batchUpdateLiveOrComingVideos');
+    Route::get('official', 'BatchController@batchTwitterSearchOfficialTweets');
     // for maintenance
     //Route::get('twitter/{id}', 'BatchController@twitterId');
     //Route::get('updnew', 'BatchController@batchUpdateNewVideos');
