@@ -303,7 +303,7 @@ class HoloApp
             foreach($channels as $channel) {
                 $tmpChannel = array();
                 $rawChannel = $channel->getData();
-                Utility::copyArrayListed($rawChannel, $tmpChannel, array('id','title','color','thumbnails'));
+                Utility::copyArrayListed($rawChannel, $tmpChannel, array('id','title','color','thumbnails','country'));
                 $resChannels[] = $tmpChannel;
             }
         }
