@@ -30,8 +30,16 @@ class BatchController extends Controller
         $posts = array();
 
         $envBatch = getenv('BATCH_SERVER', false);
+        $ipstr = (isset($_SERVER["HTTP_X_APPENGINE_USER_IP"])) ? $_SERVER["HTTP_X_APPENGINE_USER_IP"] : "notfound";
 
-        if($envBatch == 1) {
+        $isAllowIP = true;
+        if($ipstr !== '0.1.0.1'
+            && $ipstr !== '10.0.0.1') {
+
+            $isAllowIP = false;
+        }
+
+        if($envBatch == 1 && $isAllowIP) {
             $holoApp = new HoloApp();
 
             $searchLimit = getenv('TWITTER_SEARCH_LIMIT');
@@ -66,15 +74,19 @@ class BatchController extends Controller
             $result = $this->updateVideoDataFromIds( $holoApp, $idx );
             $posts = $result;
 
+            $updMessage = '';
             if(isset($result['create'])) {
                 $saveDataList = array_merge($saveDataList, $result['create']);
+                $updMessage .= ', create:'.count($result['create']);
             }
             if(isset($result['update'])) {
                 $saveDataList = array_merge($saveDataList, $result['update']);
+                $updMessage .= ', update:'.count($result['update']);
             }
             if(!empty($saveDataList)) {
                 $holoApp->ytdm->saveBatch($saveDataList);
             }
+            syslog(LOG_INFO, 'twitterSearch idx:'.count($idx).$updMessage);
         } else {
             $status = 403;
         }
@@ -219,6 +231,16 @@ class BatchController extends Controller
             }
             $retData['update'] = array_merge($result1['update'], $result2['update']);
             $retData['create'] = array_merge($result1['create'], $result2['create']);
+            syslog(LOG_INFO, 'updateVideoDataFromIds raw('.count($idx)
+                    .') skip reflesh(q'.count($skipQuoteVideoIds)
+                    .'/c'.count($skipCVideoIds)
+                    .') ytreq('.$idsCount
+                    .') quote(c'.count($result1['create'])
+                    .'/u'.count($result1['update'])
+                    .'/s'.count($result1['skip'])
+                    .') channel(c'.count($result2['create'])
+                    .'/u'.count($result2['update'])
+                    .'/u'.count($result2['skip']).')');
         }
         return $retData;
     }
@@ -323,8 +345,16 @@ class BatchController extends Controller
         $posts = array();
 
         $envBatch = getenv('BATCH_SERVER', false);
+        $ipstr = (isset($_SERVER["HTTP_X_APPENGINE_USER_IP"])) ? $_SERVER["HTTP_X_APPENGINE_USER_IP"] : "notfound";
 
-        if($envBatch == 1) {
+        $isAllowIP = true;
+        if($ipstr !== '0.1.0.1'
+            && $ipstr !== '10.0.0.1') {
+
+            $isAllowIP = false;
+        }
+
+        if($envBatch == 1 && $isAllowIP) {
             $holoApp = new HoloApp();
 
             $searchLimit = getenv('CHANNEL_SEARCH_LIMIT');
@@ -366,6 +396,9 @@ class BatchController extends Controller
                         $channel->updateData(array('videoSearchAt'=>BaseYTD::getDatetimeNowStr()));
                         $saveDataList[] = $channel;
                         $successCount++;
+
+                        syslog(LOG_INFO, 'channelSearch '.$channelId.' count:'.count($vIds)
+                                .', create:'.count($result['create']).', update:'.count($result['update']));
                     }
                 }
             }
@@ -397,7 +430,16 @@ class BatchController extends Controller
 
         $envBatch = getenv('BATCH_SERVER', false);
 
-        if($envBatch == 1) {
+        $ipstr = (isset($_SERVER["HTTP_X_APPENGINE_USER_IP"])) ? $_SERVER["HTTP_X_APPENGINE_USER_IP"] : "notfound";
+
+        $isAllowIP = true;
+        if($ipstr !== '0.1.0.1'
+            && $ipstr !== '10.0.0.1') {
+
+            $isAllowIP = false;
+        }
+
+        if($envBatch == 1 && $isAllowIP) {
             $holoApp = new HoloApp();
 
             $targetVideos = array();
@@ -445,7 +487,7 @@ class BatchController extends Controller
                         $notFoundIds[] = $vId;
                     }
                 }
-                if(!empty($notFoundIds)) {
+                if(count($apiVideos) != 0 && !empty($notFoundIds)) {
                     foreach($notFoundIds as $notFoundId) {
                         foreach((array)$targetVideos as $videoc) {
                             if($videoc->getId() === $notFoundId) {
@@ -457,6 +499,10 @@ class BatchController extends Controller
                     }
                 }
                 $posts['notfound'] = $notFoundIds;
+                syslog(LOG_INFO, 'updateLiveOrComing count:'.count($vIds)
+                        .', create:'.count($result['create'])
+                        .', update:'.count($result['update'])
+                        .', notfound:'.count($notFoundIds));
             }
             if(!empty($saveDataList)) {
                 $holoApp->ytdm->saveBatch($saveDataList);
@@ -481,7 +527,16 @@ class BatchController extends Controller
 
         $envBatch = getenv('BATCH_SERVER', false);
 
-        if($envBatch == 1) {
+        $ipstr = (isset($_SERVER["HTTP_X_APPENGINE_USER_IP"])) ? $_SERVER["HTTP_X_APPENGINE_USER_IP"] : "notfound";
+
+        $isAllowIP = true;
+        if($ipstr !== '0.1.0.1'
+            && $ipstr !== '10.0.0.1') {
+
+            $isAllowIP = false;
+        }
+
+        if($envBatch == 1 && $isAllowIP) {
             $holoApp = new HoloApp();
 
             $holoApp->searchTweetVideoIds('list:1339139547653840896 url:youtu.be', $idx);
@@ -491,15 +546,20 @@ class BatchController extends Controller
                 $posts = $result;
 
                 $saveDataList = array();
+                $updMessage = '';
                 if(isset($result['create'])) {
                     $saveDataList = array_merge($saveDataList, $result['create']);
+                    $updMessage .= ', create:'.count($result['create']);
                 }
                 if(isset($result['update'])) {
                     $saveDataList = array_merge($saveDataList, $result['update']);
+                    $updMessage .= ', update:'.count($result['update']);
                 }
                 if(!empty($saveDataList)) {
                     $holoApp->ytdm->saveBatch($saveDataList);
                 }
+                syslog(LOG_INFO, 'officialTweets count:'.count($idx)
+                        .$updMessage);
             }
         } else {
             $status = 403;
@@ -713,7 +773,8 @@ class BatchController extends Controller
         $status = 200;
 
         $holoApp = new HoloApp();
-        $videoListc = $holoApp->getChannelVideos( $id );
+        $videoListc = $holoApp->channelVideosDS( $id );
+//        $videoListc = $holoApp->getChannelVideos( $id );
 
         if($videoListc
             && $videoList = $videoListc->getDataList()) {
@@ -976,6 +1037,17 @@ class BatchController extends Controller
                 ->header('Access-Control-Allow-Methods', 'GET')
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
 
+    }
+
+    function cronTest() {
+        $posts = array();
+        $status = 200;
+        $ipstr = (isset($_SERVER["HTTP_X_APPENGINE_USER_IP"])) ? $_SERVER["HTTP_X_APPENGINE_USER_IP"] : "notfound";
+        syslog(LOG_INFO, 'remote_addr:'.$ipstr);
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
 ////////////////////////////////////////////////////////////////////////////////
