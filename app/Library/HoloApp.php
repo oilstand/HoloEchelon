@@ -243,13 +243,13 @@ class HoloApp
         }
     }
 
-    function channelVideosDS($id) {
+    function channelVideosDS($id, $page = 0) {
 
         $query = $this->ytdm->query()
             ->kind('video')
             ->filter('channelId', '=', $id)
             ->order('publishedAt', Query::ORDER_DESCENDING)
-            ->limit(50);
+            ->limit(50)->offset(50 * $page);
 
         $videoListClass = $this->ytdm->getDataListFromDSQuery('videos', $query);
 

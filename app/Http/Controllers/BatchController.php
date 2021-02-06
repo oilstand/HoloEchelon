@@ -767,13 +767,15 @@ class BatchController extends Controller
     /**
      *  /api/channelVideos/{id}
      */
-    public function channelVideos($id) {
+    public function channelVideos(Request $request, $id) {
 
         $posts = array();
         $status = 200;
 
+        $page = (int)$request->input('page', 0);
+
         $holoApp = new HoloApp();
-        $videoListc = $holoApp->channelVideosDS( $id );
+        $videoListc = $holoApp->channelVideosDS( $id, $page );
 //        $videoListc = $holoApp->getChannelVideos( $id );
 
         if($videoListc
