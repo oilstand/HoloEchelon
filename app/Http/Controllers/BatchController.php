@@ -422,6 +422,69 @@ class BatchController extends Controller
     }
 
     /**
+     *   Update Channel Data Batch
+     */
+    public function batchUpdateChannelData() {
+
+        $status = 200;
+        $posts = array();
+
+        $envBatch = getenv('BATCH_SERVER', false);
+        $ipstr = (isset($_SERVER["HTTP_X_APPENGINE_USER_IP"])) ? $_SERVER["HTTP_X_APPENGINE_USER_IP"] : "notfound";
+
+        $isAllowIP = true;
+        if($ipstr !== '0.1.0.1'
+            && $ipstr !== '10.0.0.1') {
+
+            $isAllowIP = false;
+        }/**/
+
+        $channelIds = array();
+        $dataList = array();
+        $successCount = 0;
+
+        if($envBatch == 1 && $isAllowIP) {
+            $holoApp = new HoloApp();
+
+            $query = $holoApp->ytdm->query()
+                ->kind('channel')
+                ->order('updatedAt', Query::ORDER_ASCENDING)
+                ->limit(10);
+
+            $channelListClass = $holoApp->ytdm->getDataListFromDSQuery('channels', $query);
+            if($channelListClass && $channels = $channelListClass->getDataList()) {
+
+                foreach((array)$channels as $channel) {
+                    $channelId = $channel->get('id');
+                    $channelIds[] = $channelId;
+
+                    $channelc = $holoApp->ytdm->getData(YTDManager::TYPE_CHANNEL, $channelId );
+
+                    if($channelc
+                        && $data = $channelc->getData() ) {
+
+                        $successCount++;
+                        //$dataList[] = $data;
+                    }
+                }
+            }
+
+            //$posts['savedata'] = $dataList;
+            $posts['target'] = $channelIds;
+            $posts['success'] = $successCount;
+
+        } else {
+            $status = 403;
+        }
+        syslog(LOG_INFO, 'batchUpdateChannelData targetChannelCount:'.count($channelIds)
+                .', successCount:'.$successCount);
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+    /**
      *
      */
     public function batchUpdateLiveOrComingVideos() {

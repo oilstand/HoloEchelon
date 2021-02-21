@@ -45,6 +45,7 @@ Route::middleware(['cors'])->group(function () {
     Route::get('updLiveComing', 'BatchController@batchUpdateLiveOrComingVideos');
     Route::get('official', 'BatchController@batchTwitterSearchOfficialTweets');
     // for maintenance
+    Route::get('channelsUpdate','BatchController@batchUpdateChannelData');
     //Route::get('twitter/{id}', 'BatchController@twitterId');
     //Route::get('updnew', 'BatchController@batchUpdateNewVideos');
 // <- cron batch
@@ -53,6 +54,7 @@ Route::middleware(['cors'])->group(function () {
     //Route::get('upgrade/{id}', 'BatchController@testInstantUpgrade');
     //Route::get('update/{id}', 'BatchController@updateTest');
     //Route::get('videos/{id}', 'BatchController@videos_test');
+    //Route::get('cron', 'BatchController@cronTest');
 // <- for test
 
 });

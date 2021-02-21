@@ -7,7 +7,7 @@ use App\Library\BaseYTD;
 class ChannelData extends BaseYTD
 {
     const YTD_KIND = 'channel';
-    const YTD_REFRESH_TIME = 'P1D';
+    const YTD_REFRESH_TIME = 'PT12H';
     const YTD_LIST = array(
         'id','title','description','thumbnails','publishedAt',
         'subscriberCount','viewCount','videoCount','videoSearchAt',
