@@ -19,8 +19,11 @@ class HoloApp
     const CACHE_NAME_CHANNEL_LIST = 'c_channelList';
     const CACHE_TIME_CHANNEL_LIST = 'P1D';
 
-    function __construct() {
-        $this->ytdm = new YTDManager();
+    const NAMESPACE_HOLO = false;
+    const NAMESPACE_NIJI = 'niji';
+
+    function __construct($namespace = false) {
+        $this->ytdm = new YTDManager($namespace);
         $this->twApi = new TwitterAPI();
     }
 
@@ -294,7 +297,7 @@ class HoloApp
             }
         }
 
-        $query = $this->ytdm->query()->kind('channel')->limit(50);
+        $query = $this->ytdm->query()->kind('channel')->limit(200);
         $channelList = $this->ytdm->getDataListFromDSQuery('channels', $query);
 
         $resChannels = array();
