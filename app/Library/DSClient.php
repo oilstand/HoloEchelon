@@ -7,8 +7,16 @@ use Google\Cloud\Datastore\Query\Query;
 
 class DSClient
 {
-    function __construct() {
-        $this->ds = new DatastoreClient();
+    function __construct($namespace = false) {
+        if($namespace) {
+            $this->ds = new DatastoreClient(
+                array(
+                    'namespaceId' => $namespace
+                )/**/
+            );
+        } else {
+            $this->ds = new DatastoreClient();
+        }
     }
 
     function entity( $key, $value, $noIndex = array()) {
