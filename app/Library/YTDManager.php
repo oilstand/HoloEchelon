@@ -50,8 +50,8 @@ class YTDManager
         ),
     );
 
-    function __construct() {
-        $this->dsc = new DSClient();
+    function __construct($namespace = false) {
+        $this->dsc = new DSClient($namespace);
         $this->api = new YouTubeAPI();
     }
 
@@ -114,7 +114,7 @@ class YTDManager
 
         if($dsres) {
             $dataList = array();
-            for($i = 0; $i < 100 && $dsres->valid(); $i++) {
+            for($i = 0; $i < 200 && $dsres->valid(); $i++) {
                 $dataList[] = $dsres->current()->get();
                 $dsres->next();
             }
