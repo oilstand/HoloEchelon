@@ -44,6 +44,8 @@ class RouteServiceProvider extends ServiceProvider
     {
         $this->mapApiRoutes();
 
+        $this->mapApinRoutes();
+
         $this->mapWebRoutes();
 
         //
@@ -73,7 +75,22 @@ class RouteServiceProvider extends ServiceProvider
     protected function mapApiRoutes()
     {
         Route::prefix('api')
-            ->middleware('api')
+            ->middleware('holo')
+            ->namespace($this->namespace)
+            ->group(base_path('routes/api.php'));
+    }
+
+    /**
+     * Define the "apin" routes for the application.
+     *
+     * These routes are typically stateless.
+     *
+     * @return void
+     */
+    protected function mapApinRoutes()
+    {
+        Route::prefix('apin')
+            ->middleware('niji')
             ->namespace($this->namespace)
             ->group(base_path('routes/api.php'));
     }

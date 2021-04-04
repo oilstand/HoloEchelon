@@ -3,8 +3,9 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\Library\HoloApp;
 
-class Cors
+class Holo
 {
     /**
      * Handle an incoming request.
@@ -35,9 +36,13 @@ class Cors
             case "holoechelon.com":
                 $allowHost = "holoechelon.com";
                 break;
+            case "www.holoechelon.com":
+                $allowHost = "www.holoechelon.com";
+                break;
             default:
                 break;
         }
+        $request->merge(array('namespace'=>HoloApp::NAMESPACE_HOLO));
 
         return $next($request)
             ->header('Access-Control-Allow-Origin', $allowScheme."://".$allowHost)

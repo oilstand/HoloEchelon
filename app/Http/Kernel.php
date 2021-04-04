@@ -39,8 +39,14 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
 
-        'api' => [
+        'holo' => [
             'throttle:60,1',
+            \App\Http\Middleware\Holo::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ],
+        'niji' => [
+            'throttle:60,1',
+            \App\Http\Middleware\Niji::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -63,6 +69,5 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'cors' => \App\Http\Middleware\Cors::class,
     ];
 }

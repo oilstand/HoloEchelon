@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
     return $request->user();
 });*/
 
-Route::middleware(['cors'])->group(function () {
+//@Route::middleware(['cors'])->group(function () {
 
 // for production ->
     Route::get('video/{id}', 'BatchController@video');
@@ -51,10 +51,11 @@ Route::middleware(['cors'])->group(function () {
 // <- cron batch
 
 // for test ->
+    Route::get('apex', 'BatchController@apex');
     //Route::get('upgrade/{id}', 'BatchController@testInstantUpgrade');
     //Route::get('update/{id}', 'BatchController@updateTest');
     //Route::get('videos/{id}', 'BatchController@videos_test');
     //Route::get('cron', 'BatchController@cronTest');
 // <- for test
 
-});
+//@});

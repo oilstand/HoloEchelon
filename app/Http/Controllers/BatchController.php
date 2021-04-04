@@ -24,7 +24,7 @@ class BatchController extends Controller
     /**
      * TwitterSearchBatch
      */
-    public function twitter() {
+    public function twitter(Request $request) {
 
         $status = 200;
         $posts = array();
@@ -40,7 +40,7 @@ class BatchController extends Controller
         }
 
         if($envBatch == 1 && $isAllowIP) {
-            $holoApp = new HoloApp();
+            $holoApp = new HoloApp($request->namespace);
 
             $searchLimit = getenv('TWITTER_SEARCH_LIMIT');
             if(!$searchLimit)$searchLimit = 1;
@@ -245,7 +245,7 @@ class BatchController extends Controller
         return $retData;
     }
 
-    public function twitterId($id) {
+    public function twitterId(Request $request, $id) {
 
         function dumpMemory()
         {
@@ -263,7 +263,7 @@ class BatchController extends Controller
         $status = 200;
         $posts = array();
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
 
         $query = $holoApp->ytdm->query()
             ->kind('channel')
@@ -339,7 +339,7 @@ class BatchController extends Controller
     /**
      *   Search channel Videos Batch
      */
-    public function batchChannelSearchVideos() {
+    public function batchChannelSearchVideos(Request $request) {
 
         $status = 200;
         $posts = array();
@@ -355,7 +355,7 @@ class BatchController extends Controller
         }
 
         if($envBatch == 1 && $isAllowIP) {
-            $holoApp = new HoloApp();
+            $holoApp = new HoloApp($request->namespace);
 
             $searchLimit = getenv('CHANNEL_SEARCH_LIMIT');
             if(!$searchLimit)$searchLimit = 1;
@@ -424,7 +424,7 @@ class BatchController extends Controller
     /**
      *   Update Channel Data Batch
      */
-    public function batchUpdateChannelData() {
+    public function batchUpdateChannelData(Request $request) {
 
         $status = 200;
         $posts = array();
@@ -444,7 +444,7 @@ class BatchController extends Controller
         $successCount = 0;
 
         if($envBatch == 1 && $isAllowIP) {
-            $holoApp = new HoloApp();
+            $holoApp = new HoloApp($request->namespace);
 
             $query = $holoApp->ytdm->query()
                 ->kind('channel')
@@ -487,7 +487,7 @@ class BatchController extends Controller
     /**
      *
      */
-    public function batchUpdateLiveOrComingVideos() {
+    public function batchUpdateLiveOrComingVideos(Request $request) {
         $status = 200;
         $posts = array();
 
@@ -503,7 +503,7 @@ class BatchController extends Controller
         }
 
         if($envBatch == 1 && $isAllowIP) {
-            $holoApp = new HoloApp();
+            $holoApp = new HoloApp($request->namespace);
 
             $targetVideos = array();
             $vIds = array();
@@ -584,7 +584,7 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
-    public function batchTwitterSearchOfficialTweets(){
+    public function batchTwitterSearchOfficialTweets(Request $request){
         $status = 200;
         $posts = array();
 
@@ -600,9 +600,21 @@ class BatchController extends Controller
         }
 
         if($envBatch == 1 && $isAllowIP) {
-            $holoApp = new HoloApp();
+            $holoApp = new HoloApp($request->namespace);
+            $listId = false;
+            switch($request->namespace) {
+                case HoloApp::NAMESPACE_HOLO:
+                    $listId = "1339139547653840896";
+                    break;
+                case HoloApp::NAMESPACE_NIJI:
+                    $listId = "1071754025471664128";
+                    break;
+            }
 
-            $holoApp->searchTweetVideoIds('list:1339139547653840896 url:youtu.be', $idx);
+            $idx = array();
+            if($listId !== false) {
+                $holoApp->searchTweetVideoIds('list:'.$listId.' url:youtu.be', $idx);
+            }
 
             if(!empty($idx)) {
                 $result = $this->updateVideoDataFromIds( $holoApp, $idx );
@@ -667,11 +679,11 @@ class BatchController extends Controller
     /**
      *      scheduledStartTime新しい順にデータを更新する
      */
-    public function batchUpdateNewVideos() {
+    public function batchUpdateNewVideos(Request $request) {
         $status = 200;
         $posts = array();
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
         $saveDataList = array();
         $videoListc = $holoApp->newVideosDS( 0 );
         if($videoListc) {
@@ -703,19 +715,21 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $posts = array('hoge'=>'huga');
         $status = 200;
 
-        $api = new YouTubeAPI();
+        //@$api = new YouTubeAPI();
         //@$posts['test'] = $api->getChannelVideos('UCWCc8tO-uUl_7SJXIKJACMw');
         //@$posts['test'] = $api->getVideo('mRqrkTQ_fL8');
 
-        $yt = new YTDManager();
+        //@@$yt = new YTDManager();
+        $holoApp = new HoloApp($request->namespace);
         //@$channel = $yt->getData(YTDManager::TYPE_CHANNEL,'UCWCc8tO-uUl_7SJXIKJACMw');
         //@$posts['test'] = $channel->getData();
-        $video = $yt->getData(YTDManager::TYPE_VIDEO,'mRqrkTQ_fL8');
+        //@@$video = $yt->getData(YTDManager::TYPE_VIDEO,'mRqrkTQ_fL8');
+        $video = $holoApp->ytdm->getData(YTDManager::TYPE_VIDEO,'mRqrkTQ_fL8');
         $posts['test'] = $video->getData();
 
         return response()->json($posts, $status)
@@ -751,13 +765,15 @@ class BatchController extends Controller
     /**
      * /api/video/{id}
      */
-    public function video($id)
+    public function video(Request $request, $id)
     {
         $posts = array('hoge'=>'huga');
         $status = 200;
 
-        $yt = new YTDManager();
-        $videoc = $yt->getData(YTDManager::TYPE_VIDEO, $id );
+        //@$yt = new YTDManager();
+        $holoApp = new HoloApp($request->namespace);
+        //@$videoc = $yt->getData(YTDManager::TYPE_VIDEO, $id );
+        $videoc = $holoApp->ytdm->getData(YTDManager::TYPE_VIDEO, $id );
         if($videoc
             && $data = $videoc->getData() ) {
 
@@ -777,13 +793,15 @@ class BatchController extends Controller
     /*
      *  /api/channel/{id}
      *  */
-    public function channel($id) {
+    public function channel(Request $request, $id) {
 
         $posts = array();
         $status = 200;
 
-        $yt = new YTDManager();
-        $channelc = $yt->getData(YTDManager::TYPE_CHANNEL, $id );
+        //@$yt = new YTDManager();
+        $holoApp = new HoloApp($request->namespace);
+        //@$channelc = $yt->getData(YTDManager::TYPE_CHANNEL, $id );
+        $channelc = $holoApp->ytdm->getData(YTDManager::TYPE_CHANNEL, $id );
 
         if($channelc
             && $data = $channelc->getData() ) {
@@ -804,12 +822,12 @@ class BatchController extends Controller
     /*
      *  /api/channelList
      *  */
-    function channelList() {
+    function channelList(Request $request) {
 
         $posts = array();
         $status = 200;
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
 
         $channelList = $holoApp->channelList();
 
@@ -837,7 +855,7 @@ class BatchController extends Controller
 
         $page = (int)$request->input('page', 0);
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
         $videoListc = $holoApp->channelVideosDS( $id, $page );
 //        $videoListc = $holoApp->getChannelVideos( $id );
 
@@ -863,12 +881,12 @@ class BatchController extends Controller
     /**
      *  /api/newVideos/{id}
      */
-    public function newVideos($id = 0) {
+    public function newVideos(Request $request, $id = 0) {
 
         $posts = array();
         $status = 200;
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
         $videoListc = $holoApp->newVideosDS( $id );
 
         if($videoListc
@@ -890,11 +908,11 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
-    public function quoteVideos($id) {
+    public function quoteVideos(Request $request, $id) {
         $posts = array();
         $status = 200;
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
 
         $targetVideos = array();
         $vIds = array();
@@ -925,7 +943,7 @@ class BatchController extends Controller
         $posts = array('api'=>'videos');
         $status = 200;
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
 
         $rawDateStr = $request->input('date', '');
         $range = (int)$request->input('range', 1);
@@ -974,12 +992,12 @@ class BatchController extends Controller
 
 
 
-    public function gameVideos($id) {
+    public function gameVideos(Request $request, $id) {
 
         $posts = array();
         $status = 200;
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
         $videoListc = $holoApp->gameVideosDS( 0 + $id );
 
         if($videoListc
@@ -1002,12 +1020,12 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
-    public function checkGameChannelVideos($id) {
+    public function checkGameChannelVideos(Request $request, $id) {
 
         $posts = array();
         $status = 200;
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
         $videoListc = $holoApp->channelVideosDS( $id );
         if($videoListc
             && $videoList = $videoListc->getDataList()) {
@@ -1032,12 +1050,12 @@ class BatchController extends Controller
                 ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
     }
 
-    function testInstantUpgrade($id) {
+    function testInstantUpgrade(Request $request, $id) {
 
         $posts = array();
         $status = 200;
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
         $videoListc = $holoApp->channelVideosDS( $id );
         if($videoListc
             && $videoList = $videoListc->getDataList()) {
@@ -1071,12 +1089,12 @@ class BatchController extends Controller
 
     }
 
-    function updateTest($id) {
+    function updateTest(Request $request, $id) {
 
         $posts = array();
         $status = 200;
 
-        $holoApp = new HoloApp();
+        $holoApp = new HoloApp($request->namespace);
         $videoListc = $holoApp->newVideosDS( $id );
         if($videoListc
             && $videoList = $videoListc->getDataList()) {
@@ -1104,7 +1122,7 @@ class BatchController extends Controller
 
     }
 
-    function cronTest() {
+    function cronTest(Request $request) {
         $posts = array();
         $status = 200;
         $ipstr = (isset($_SERVER["HTTP_X_APPENGINE_USER_IP"])) ? $_SERVER["HTTP_X_APPENGINE_USER_IP"] : "notfound";
