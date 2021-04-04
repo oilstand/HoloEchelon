@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Library\YouTubeAPI;
+use App\Library\Apex\ApexAPI;
+use App\Library\Apex\ApexApp;
 use App\Library\YTDManager;
 use App\Library\BaseYTD;
 use App\Library\QuoteVideoData;
@@ -20,6 +22,43 @@ class BatchController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+
+
+    public function apex(Request $request) {
+
+        $status = 200;
+        $posts = array();
+
+        $envBatch = getenv('BATCH_SERVER', false);
+        $ipstr = (isset($_SERVER["HTTP_X_APPENGINE_USER_IP"])) ? $_SERVER["HTTP_X_APPENGINE_USER_IP"] : "notfound";
+
+        $isAllowIP = true;
+        if($ipstr !== '0.1.0.1'
+            && $ipstr !== '10.0.0.1') {
+
+            $isAllowIP = false;
+        }
+
+        if(true/*$envBatch == 1 && $isAllowIP*/) {
+            $app = new ApexApp();
+
+            $playerList = $app->getApexUserList();
+
+            foreach((array)$playerList as $player) {
+                $posts[] = $app->updateUserStat( $player );
+            }
+            //syslog(LOG_INFO, 'twitterSearch idx:'.count($idx).$updMessage);
+        } else {
+            $status = 403;
+        }
+
+        return response()->json($posts, $status)
+                ->header('Content-Type', 'application/json')
+                ->header('Access-Control-Allow-Methods', 'GET')
+                ->header("Access-Control-Allow-Origin" , $this->CORS_ORIGIN);
+    }
+
+
 
     /**
      * TwitterSearchBatch
